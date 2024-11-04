@@ -168,13 +168,49 @@ export const rerankerNode = {
     }
   }
 }
+export const documentExtractNode = {
+  type: WorkflowType.DocumentExtractNode,
+  text: '提取文档中的内容',
+  label: '文档内容提取',
+  height: 252,
+  properties: {
+    stepName: '文档内容提取',
+    config: {
+      fields: [
+        {
+          label: '文件内容',
+          value: 'content'
+        },
+      ]
+    }
+  }
+}
+export const imageUnderstandNode = {
+  type: WorkflowType.ImageUnderstandNode,
+  text: '识别出图片中的对象、场景等信息回答用户问题',
+  label: '图片理解',
+  height: 252,
+  properties: {
+    stepName: '图片理解',
+    config: {
+      fields: [
+        {
+          label: 'AI 回答内容',
+          value: 'content'
+        },
+      ]
+    }
+  }
+}
 export const menuNodes = [
   aiChatNode,
   searchDatasetNode,
   questionNode,
   conditionNode,
   replyNode,
-  rerankerNode
+  rerankerNode,
+  documentExtractNode,
+  imageUnderstandNode
 ]
 
 /**
@@ -242,7 +278,9 @@ export const nodeDict: any = {
   [WorkflowType.Reply]: replyNode,
   [WorkflowType.FunctionLib]: functionLibNode,
   [WorkflowType.FunctionLibCustom]: functionNode,
-  [WorkflowType.RrerankerNode]: rerankerNode
+  [WorkflowType.RrerankerNode]: rerankerNode,
+  [WorkflowType.DocumentExtractNode]: documentExtractNode,
+  [WorkflowType.ImageUnderstandNode]: imageUnderstandNode,
 }
 export function isWorkFlow(type: string | undefined) {
   return type === 'WORK_FLOW'

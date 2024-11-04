@@ -1,5 +1,9 @@
 # coding=utf-8
+import base64
+import os
 from typing import Dict
+
+from langchain_core.messages import HumanMessage
 
 from common import forms
 from common.exception.app_exception import AppApiException
@@ -25,7 +29,14 @@ class OpenAIImageModelCredential(BaseForm, BaseModelCredential):
                     return False
         try:
             model = provider.get_model(model_type, model_name, model_credential)
-            model.check_auth()
+            cwd = os.path.dirname(os.path.abspath(__file__))
+            with open(f'{cwd}/img_1.png', 'rb') as f:
+                base64_image = base64.b64encode(f.read()).decode("utf-8")
+                model.invoke([HumanMessage(content=[
+                    {'type': 'image_url',
+                     'image_url': {'url': f'data:image/jpeg;base64,{base64_image}'}},
+                    {"type": "text", "text": "一句话概述这个图片"}])]
+                )
         except Exception as e:
             if isinstance(e, AppApiException):
                 raise e

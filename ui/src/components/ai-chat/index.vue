@@ -192,6 +192,12 @@
         />
 
         <div class="operate flex align-center">
+          <span v-if="props.data.file_upload_enable" class="flex align-center">
+            <el-button text v-if="mediaRecorderStatus">
+              <el-icon><Paperclip /></el-icon>
+            </el-button>
+            <el-divider direction="vertical" />
+          </span>
           <span v-if="props.data.stt_model_enable" class="flex align-center">
             <el-button text v-if="mediaRecorderStatus" @click="startRecording">
               <el-icon>
