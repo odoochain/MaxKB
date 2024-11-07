@@ -347,6 +347,19 @@ const getModelParamsForm: (
 }
 
 /**
+ * 上传文档图片附件
+ */
+const uploadFile: (
+  application_id: String,
+  chat_id: String,
+  data: any,
+  loading?: Ref<boolean>
+) => Promise<Result<any>> = (application_id, chat_id, data, loading) => {
+  return post(`${prefix}/${application_id}/chat/${chat_id}/upload_file`, data, undefined, loading)
+}
+
+
+/**
  * 语音转文本
  */
 const postSpeechToText: (
@@ -509,5 +522,6 @@ export default {
   getWorkFlowVersionDetail,
   putWorkFlowVersion,
   playDemoText,
-  getUserList
+  getUserList,
+  uploadFile
 }

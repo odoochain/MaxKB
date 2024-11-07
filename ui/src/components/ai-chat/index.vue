@@ -193,9 +193,16 @@
 
         <div class="operate flex align-center">
           <span v-if="props.data.file_upload_enable" class="flex align-center">
-            <el-button text v-if="mediaRecorderStatus">
-              <el-icon><Paperclip /></el-icon>
-            </el-button>
+            <el-upload
+              action="#"
+              :auto-upload="false"
+              :show-file-list="false"
+              :on-change="(file: any, fileList: any) => uploadFile(file, fileList)"
+            >
+              <el-button text>
+                <el-icon><Paperclip /></el-icon>
+              </el-button>
+            </el-upload>
             <el-divider direction="vertical" />
           </span>
           <span v-if="props.data.stt_model_enable" class="flex align-center">
@@ -920,6 +927,21 @@ const handleScroll = () => {
       }
     }
   }
+}
+
+const uploadFileList = ref<any>([])
+const uploadFile = (file: any, fileList: any) => {
+  console.log(file, fileList)
+  const formData = new FormData()
+  fileList.forEach((file: any) => {
+    formData.append('file', file.raw, file.name)
+    uploadFileList.value.push(file)
+  })
+  applicationApi.uploadFile(props.data.id as string, props.appId as string, formData, loading).then((response) => {
+    console.log(response)
+    fileList.splice(0, fileList.length)
+    console.log(uploadFileList.value.length)
+  })
 }
 
 // 定义响应式引用

@@ -391,3 +391,24 @@ class ChatView(APIView):
                         data={'chat_id': chat_id, 'chat_record_id': chat_record_id,
                               'dataset_id': dataset_id, 'document_id': document_id,
                               'paragraph_id': paragraph_id}).delete())
+
+    class UploadFile(APIView):
+        authentication_classes = [TokenAuth]
+
+        @action(methods=['POST'], detail=False)
+        @swagger_auto_schema(operation_summary="上传文件",
+                             operation_id="上传文件",
+                             manual_parameters=ChatRecordApi.get_request_params_api(),
+                             tags=["应用/对话日志"]
+                             )
+        @has_permissions(
+            ViewPermission([RoleConstants.ADMIN, RoleConstants.USER, RoleConstants.APPLICATION_KEY,
+                            RoleConstants.APPLICATION_ACCESS_TOKEN],
+                           [lambda r, keywords: Permission(group=Group.APPLICATION, operate=Operate.USE,
+                                                           dynamic_tag=keywords.get('application_id'))])
+        )
+        def post(self, request: Request, application_id: str, chat_id: str):
+            print(application_id, chat_id)
+            files = request.FILES.getlist('file')
+            print(files)
+            return result.success('ok')
