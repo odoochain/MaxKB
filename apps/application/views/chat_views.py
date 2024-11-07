@@ -22,6 +22,7 @@ from common.constants.permission_constants import Permission, Group, Operate, \
     RoleConstants, ViewPermission, CompareConstants
 from common.response import result
 from common.util.common import query_params_to_single_dict
+from dataset.serializers.file_serializers import FileSerializer
 
 
 class Openai(APIView):
@@ -410,5 +411,9 @@ class ChatView(APIView):
         def post(self, request: Request, application_id: str, chat_id: str):
             print(application_id, chat_id)
             files = request.FILES.getlist('file')
-            print(files)
-            return result.success('ok')
+            file_ids = []
+            for file in files:
+                file_id = FileSerializer(data={'file': file}).upload()
+                file_ids.append(file_id)
+            return result.success(file_ids)
+

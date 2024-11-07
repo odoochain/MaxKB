@@ -149,7 +149,6 @@ class File(AppModelMixin):
     ):
         result = select_one("SELECT lo_from_bytea(%s, %s::bytea) as loid", [0, bytea])
         self.loid = result['loid']
-        self.file_name = 'speech.mp3'
         super().save()
 
     def get_byte(self):
