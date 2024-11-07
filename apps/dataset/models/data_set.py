@@ -141,6 +141,9 @@ class File(AppModelMixin):
 
     loid = models.IntegerField(verbose_name="loid")
 
+    meta = models.JSONField(verbose_name="文件关联数据", default=dict)
+
+
     class Meta:
         db_table = "file"
 

@@ -412,8 +412,9 @@ class ChatView(APIView):
             print(application_id, chat_id)
             files = request.FILES.getlist('file')
             file_ids = []
+            meta = {'application_id': application_id, 'chat_id': chat_id}
             for file in files:
-                file_id = FileSerializer(data={'file': file}).upload()
+                file_id = FileSerializer(data={'file': file, 'meta': meta}).upload()
                 file_ids.append(file_id)
             return result.success(file_ids)
 
