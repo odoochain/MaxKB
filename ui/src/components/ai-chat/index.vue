@@ -929,16 +929,25 @@ const handleScroll = () => {
   }
 }
 
+// 保存上传文件列表
 const uploadFileList = ref<any>([])
 const uploadFile = (file: any, fileList: any) => {
-  console.log(file, fileList)
+  const { maxFiles, fileLimit } = props.data.file_upload_setting
+  if (fileList.length > maxFiles) {
+    MsgWarning('最多上传' + maxFiles + '个文件')
+    return
+  }
+  if (fileList.filter((f: any) => f.size > fileLimit * 1024 * 1024).length > 0) { // MB
+    MsgWarning('单个文件大小不能超过' + fileLimit + 'MB')
+    fileList.splice(0, fileList.length)
+    return
+  }
   const formData = new FormData()
-  fileList.forEach((file: any) => {
+  for (const file of fileList) {
     formData.append('file', file.raw, file.name)
     uploadFileList.value.push(file)
-  })
+  }
   applicationApi.uploadFile(props.data.id as string, props.appId as string, formData, loading).then((response) => {
-    console.log(response)
     fileList.splice(0, fileList.length)
     console.log(uploadFileList.value.length)
   })
