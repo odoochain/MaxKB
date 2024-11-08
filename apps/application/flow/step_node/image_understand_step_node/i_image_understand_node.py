@@ -28,6 +28,8 @@ class IImageUnderstandNode(INode):
         return ImageUnderstandNodeSerializer
 
     def _run(self):
+        self.workflow_manage.get_reference_field(self.node_params_serializer.data.get('image_list')[0],
+                                                 self.node_params_serializer.data.get('image_list')[1:])
         return self.execute(**self.node_params_serializer.data, **self.flow_params_serializer.data)
 
     def execute(self, model_id, system, prompt, dialogue_number, history_chat_record, stream, chat_id,

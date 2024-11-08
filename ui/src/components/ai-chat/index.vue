@@ -804,7 +804,6 @@ function chatMessage(chat?: any, problem?: string, re_chat?: boolean) {
       record_id: '',
       vote_status: '-1',
       status: undefined,
-      file_list: uploadFileList.value
     })
     chatList.value.push(chat)
     ChatManagement.addChatRecord(chat, 50, loading)
@@ -823,7 +822,8 @@ function chatMessage(chat?: any, problem?: string, re_chat?: boolean) {
     const obj = {
       message: chat.problem_text,
       re_chat: re_chat || false,
-      form_data: { ...form_data.value, ...api_form_data.value }
+      form_data: { ...form_data.value, ...api_form_data.value },
+      image_list: uploadFileList.value,
     }
     // 对话
     applicationApi

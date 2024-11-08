@@ -129,6 +129,7 @@ class ChatView(APIView):
                                                'client_id': request.auth.client_id,
                                                'form_data': (request.data.get(
                                                    'form_data') if 'form_data' in request.data else {}),
+                                               'image_list': request.data.get('image_list') if 'image_list' in request.data else {},
                                                'client_type': request.auth.client_type}).chat()
 
     @action(methods=['GET'], detail=False)
