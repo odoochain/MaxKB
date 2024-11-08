@@ -64,10 +64,9 @@ class BaseImageUnderstandNode(IImageUnderstandNode):
         self.context['history_message'] = history_message
         question = self.generate_prompt_question(prompt)
         self.context['question'] = question.content
+        # todo 处理上传图片
         message_list = self.generate_message_list(image_model, system, prompt, history_message, image)
         self.context['message_list'] = message_list
-        # todo: 上传图片
-
         if stream:
             r = image_model.stream(message_list)
             return NodeResult({'result': r, 'chat_model': image_model, 'message_list': message_list,

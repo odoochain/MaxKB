@@ -149,7 +149,7 @@
             :nodeModel="nodeModel"
             class="w-full"
             placeholder="请选择文件"
-            v-model="form.file_list"
+            v-model="form_data.file_list"
           />
         </el-form-item>
         <el-form-item label="返回内容" @click.prevent>
