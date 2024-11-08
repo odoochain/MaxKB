@@ -955,6 +955,7 @@ const uploadFile = async (file: any, fileList: any) => {
   applicationApi.uploadFile(props.data.id as string, chartOpenId.value, formData, loading).then((response) => {
     fileList.splice(0, fileList.length)
     console.log(uploadFileList.value.length)
+    console.log(response.data)
   })
 }
 
