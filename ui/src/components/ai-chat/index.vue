@@ -947,7 +947,8 @@ const uploadFile = (file: any, fileList: any) => {
     formData.append('file', file.raw, file.name)
     uploadFileList.value.push(file)
   }
-  applicationApi.uploadFile(props.data.id as string, props.chatId as string, formData, loading).then((response) => {
+  let chatId = props.chatId || 'debug'
+  applicationApi.uploadFile(props.data.id as string, chatId, formData, loading).then((response) => {
     fileList.splice(0, fileList.length)
     console.log(uploadFileList.value.length)
   })
