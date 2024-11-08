@@ -931,7 +931,7 @@ const handleScroll = () => {
 
 // 保存上传文件列表
 const uploadFileList = ref<any>([])
-const uploadFile = (file: any, fileList: any) => {
+const uploadFile = async (file: any, fileList: any) => {
   const { maxFiles, fileLimit } = props.data.file_upload_setting
   if (fileList.length > maxFiles) {
     MsgWarning('最多上传' + maxFiles + '个文件')
@@ -947,8 +947,12 @@ const uploadFile = (file: any, fileList: any) => {
     formData.append('file', file.raw, file.name)
     uploadFileList.value.push(file)
   }
-  let chatId = props.chatId || 'debug'
-  applicationApi.uploadFile(props.data.id as string, chatId, formData, loading).then((response) => {
+
+  if (props.chatId === 'new' || !chartOpenId.value) {
+    const res = await applicationApi.getChatOpen(props.data.id as string)
+    chartOpenId.value = res.data
+  }
+  applicationApi.uploadFile(props.data.id as string, chartOpenId.value, formData, loading).then((response) => {
     fileList.splice(0, fileList.length)
     console.log(uploadFileList.value.length)
   })

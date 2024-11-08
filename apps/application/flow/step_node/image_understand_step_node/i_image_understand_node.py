@@ -18,7 +18,7 @@ class ImageUnderstandNodeSerializer(serializers.Serializer):
 
     is_result = serializers.BooleanField(required=False, error_messages=ErrMessage.boolean('是否返回内容'))
 
-    image = serializers.CharField(required=False, error_messages=ErrMessage.integer("图片仅1张"))
+    image_list = serializers.ListField(required=False, error_messages=ErrMessage.list("图片仅1张"))
 
 
 class IImageUnderstandNode(INode):
@@ -32,6 +32,6 @@ class IImageUnderstandNode(INode):
 
     def execute(self, model_id, system, prompt, dialogue_number, history_chat_record, stream, chat_id,
                 chat_record_id,
-                image=None,
+                image_list,
                 **kwargs) -> NodeResult:
         pass

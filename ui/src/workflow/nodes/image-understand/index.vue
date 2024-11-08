@@ -137,10 +137,10 @@
             class="w-full"
           />
         </el-form-item>
-        <el-form-item label="选择文件" :rules="{
+        <el-form-item label="选择图片" :rules="{
             type: 'array',
             required: true,
-            message: '请选择文件',
+            message: '请选择图片',
             trigger: 'change'
           }"
         >
@@ -148,8 +148,8 @@
             ref="nodeCascaderRef"
             :nodeModel="nodeModel"
             class="w-full"
-            placeholder="请选择文件"
-            v-model="form_data.file_list"
+            placeholder="请选择图片"
+            v-model="form_data.image_list"
           />
         </el-form-item>
         <el-form-item label="返回内容" @click.prevent>
@@ -216,7 +216,7 @@ const form = {
   is_result: true,
   temperature: null,
   max_tokens: null,
-  file_list: []
+  image_list: ["start-node", "image"]
 }
 
 const form_data = computed({
