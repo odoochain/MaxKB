@@ -803,7 +803,8 @@ function chatMessage(chat?: any, problem?: string, re_chat?: boolean) {
       is_stop: false,
       record_id: '',
       vote_status: '-1',
-      status: undefined
+      status: undefined,
+      file_list: uploadFileList.value
     })
     chatList.value.push(chat)
     ChatManagement.addChatRecord(chat, 50, loading)
@@ -954,8 +955,13 @@ const uploadFile = async (file: any, fileList: any) => {
   }
   applicationApi.uploadFile(props.data.id as string, chartOpenId.value, formData, loading).then((response) => {
     fileList.splice(0, fileList.length)
-    console.log(uploadFileList.value.length)
-    console.log(response.data)
+    uploadFileList.value.forEach((file: any) => {
+      const f = response.data.filter((f: any) => f.name === file.name)
+      if (f.length > 0) {
+        file.url = f[0].url
+      }
+    })
+    console.log(uploadFileList.value)
   })
 }
 

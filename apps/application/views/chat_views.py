@@ -409,12 +409,11 @@ class ChatView(APIView):
                                                            dynamic_tag=keywords.get('application_id'))])
         )
         def post(self, request: Request, application_id: str, chat_id: str):
-            print(application_id, chat_id)
             files = request.FILES.getlist('file')
             file_ids = []
             meta = {'application_id': application_id, 'chat_id': chat_id}
             for file in files:
                 file_url = FileSerializer(data={'file': file, 'meta': meta}).upload()
-                file_ids.append({'name': file.name, file_url: 'file_url'})
+                file_ids.append({'name': file.name, 'url': file_url})
             return result.success(file_ids)
 
