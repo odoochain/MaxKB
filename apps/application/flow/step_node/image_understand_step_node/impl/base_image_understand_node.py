@@ -95,7 +95,7 @@ class BaseImageUnderstandNode(IImageUnderstandNode):
 
     def generate_message_list(self, image_model, system: str, prompt: str, history_message, image):
         if image is not None and len(image) > 0:
-            file_id = image[0].url.split('/')[-1]
+            file_id = image[0]['file_id']
             file = QuerySet(File).filter(id=file_id).first()
 
         if system is not None and len(system) > 0:

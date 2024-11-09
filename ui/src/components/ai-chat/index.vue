@@ -959,6 +959,7 @@ const uploadFile = async (file: any, fileList: any) => {
       const f = response.data.filter((f: any) => f.name === file.name)
       if (f.length > 0) {
         file.url = f[0].url
+        file.file_id = f[0].file_id
       }
     })
     console.log(uploadFileList.value)
