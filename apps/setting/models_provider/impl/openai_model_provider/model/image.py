@@ -29,13 +29,11 @@ class OpenAIImage(MaxKBBaseModel, ChatOpenAI):
 
     @staticmethod
     def generate_message(prompt: str, image) -> list[HumanMessage]:
-        if image is None:
-            cwd = os.path.dirname(os.path.abspath(__file__))
-            with open(f'{cwd}/img_1.png', 'rb') as f:
-                base64_image = base64.b64encode(f.read()).decode("utf-8")
-                return [HumanMessage(
-                    content=[
-                        {'type': 'text', 'text': prompt},
-                        {'type': 'image_url', 'image_url': {'url': f'data:image/jpeg;base64,{base64_image}'}},
-                    ])]
+        if image is not None:
+            base64_image = base64.b64encode(image.get_byte()).decode("utf-8")
+            return [HumanMessage(
+                content=[
+                    {'type': 'text', 'text': prompt},
+                    {'type': 'image_url', 'image_url': {'url': f'data:image/jpeg;base64,{base64_image}'}},
+                ])]
         return [HumanMessage(prompt)]

@@ -5,10 +5,12 @@ import time
 from functools import reduce
 from typing import List, Dict
 
+from django.db.models import QuerySet
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
 from application.flow.i_step_node import NodeResult, INode
 from application.flow.step_node.image_understand_step_node.i_image_understand_node import IImageUnderstandNode
+from dataset.models import File
 from setting.models_provider.tools import get_model_instance_by_model_user_id
 
 
@@ -57,7 +59,7 @@ def write_context(node_variable: Dict, workflow_variable: Dict, node: INode, wor
 
 class BaseImageUnderstandNode(IImageUnderstandNode):
     def execute(self, model_id, system, prompt, dialogue_number, history_chat_record, stream, chat_id, chat_record_id,
-                image_list,
+                image,
                 **kwargs) -> NodeResult:
         image_model = get_model_instance_by_model_user_id(model_id, self.flow_params_serializer.data.get('user_id'))
         history_message = self.get_history_message(history_chat_record, dialogue_number)
@@ -65,9 +67,9 @@ class BaseImageUnderstandNode(IImageUnderstandNode):
         question = self.generate_prompt_question(prompt)
         self.context['question'] = question.content
         # todo 处理上传图片
-        message_list = self.generate_message_list(image_model, system, prompt, history_message, None)
+        message_list = self.generate_message_list(image_model, system, prompt, history_message, image)
         self.context['message_list'] = message_list
-        print('image_list:', image_list)
+        print('image_list:', image)
         if stream:
             r = image_model.stream(message_list)
             return NodeResult({'result': r, 'chat_model': image_model, 'message_list': message_list,
@@ -92,16 +94,20 @@ class BaseImageUnderstandNode(IImageUnderstandNode):
         return HumanMessage(self.workflow_manage.generate_prompt(prompt))
 
     def generate_message_list(self, image_model, system: str, prompt: str, history_message, image):
+        if image is not None and len(image) > 0:
+            file_id = image[0].url.split('/')[-1]
+            file = QuerySet(File).filter(id=file_id).first()
+
         if system is not None and len(system) > 0:
             return [
                 SystemMessage(self.workflow_manage.generate_prompt(system)),
                 *history_message,
-                *image_model.generate_message(self.workflow_manage.generate_prompt(prompt), image)
+                *image_model.generate_message(self.workflow_manage.generate_prompt(prompt), file)
             ]
         else:
             return [
                 *history_message,
-                *image_model.generate_message(self.workflow_manage.generate_prompt(prompt), image)
+                *image_model.generate_message(self.workflow_manage.generate_prompt(prompt), file)
             ]
 
     @staticmethod
