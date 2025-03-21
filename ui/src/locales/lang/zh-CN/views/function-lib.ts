@@ -1,5 +1,7 @@
 export default {
   title: '函数库',
+  internalTitle: '内置函数',
+  added: '已添加',
   createFunction: '创建函数',
   editFunction: '编辑函数',
   copyFunction: '复制函数',
@@ -28,7 +30,7 @@ export default {
     },
     form: {
       functionName: {
-        label: '函数名称',
+        label: '名称',
         placeholder: '请输入函数名称',
         requiredMessage: '请输入函数名称'
       },

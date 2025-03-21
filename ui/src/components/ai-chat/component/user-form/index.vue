@@ -4,20 +4,16 @@
       (inputFieldList.length > 0 || (type === 'debug-ai-chat' && apiInputFieldList.length > 0)) &&
       type !== 'log'
     "
-    class="mb-16"
-    style="padding: 0 24px"
+    class="mb-16 w-full"
+    style="padding: 0 24px; max-width: 400px"
   >
     <el-card shadow="always" class="border-r-8" style="--el-card-padding: 16px 8px">
-      <div
-        class="flex align-center cursor w-full"
-        style="padding: 0 8px"
-        @click="showUserInput = !showUserInput"
-      >
-        <el-icon class="mr-8 arrow-icon" :class="showUserInput ? 'rotate-90' : ''"
+      <div class="flex align-center cursor w-full" style="padding: 0 8px">
+        <!-- <el-icon class="mr-8 arrow-icon" :class="showUserInput ? 'rotate-90' : ''"
           ><CaretRight
-        /></el-icon>
+        /></el-icon> -->
         <span class="break-all ellipsis-1 mr-16" :title="inputFieldConfig.title">
-        {{ inputFieldConfig.title }}
+          {{ inputFieldConfig.title }}
         </span>
       </div>
       <el-scrollbar max-height="160">
@@ -44,6 +40,15 @@
           </div>
         </el-collapse-transition>
       </el-scrollbar>
+      <div class="text-right mr-8">
+        <el-button type="primary" v-if="first" @click="confirmHandle">{{
+          $t('chat.operation.startChat')
+        }}</el-button>
+        <el-button v-if="!first" @click="cancelHandle">{{ $t('common.cancel') }}</el-button>
+        <el-button type="primary" v-if="!first" @click="confirmHandle">{{
+          $t('common.confirm')
+        }}</el-button>
+      </div>
     </el-card>
   </div>
 </template>
@@ -60,6 +65,7 @@ const props = defineProps<{
   type: 'log' | 'ai-chat' | 'debug-ai-chat'
   api_form_data: any
   form_data: any
+  first: boolean
 }>()
 // 用于刷新动态表单
 const dynamicsFormRefresh = ref(0)
@@ -67,7 +73,7 @@ const inputFieldList = ref<FormField[]>([])
 const apiInputFieldList = ref<FormField[]>([])
 const inputFieldConfig = ref({ title: t('chat.userInput') })
 const showUserInput = ref(true)
-const emit = defineEmits(['update:api_form_data', 'update:form_data'])
+const emit = defineEmits(['update:api_form_data', 'update:form_data', 'confirm', 'cancel'])
 
 const api_form_data_context = computed({
   get: () => {
@@ -270,6 +276,25 @@ function handleInputFieldList() {
         : { title: t('chat.userInput') }
     })
 }
+const getRouteQueryValue = (field: string) => {
+  let _value = route.query[field]
+  if (_value != null) {
+    if (_value instanceof Array) {
+      _value = _value
+        .map((item) => {
+          if (item != null) {
+            return decodeQuery(item)
+          }
+          return null
+        })
+        .filter((item) => item != null)
+    } else {
+      _value = decodeQuery(_value)
+    }
+    return _value
+  }
+  return null
+}
 /**
  * 校验参数
  */
@@ -288,20 +313,8 @@ const checkInputParam = () => {
   let msg = []
   for (let f of apiInputFieldList.value) {
     if (!api_form_data_context.value[f.field]) {
-      let _value = route.query[f.field]
+      let _value = getRouteQueryValue(f.field)
       if (_value != null) {
-        if (_value instanceof Array) {
-          _value = _value
-            .map((item) => {
-              if (item != null) {
-                return decodeQuery(item)
-              }
-              return null
-            })
-            .filter((item) => item != null)
-        } else {
-          _value = decodeQuery(_value)
-        }
         api_form_data_context.value[f.field] = _value
       }
     }
@@ -309,6 +322,10 @@ const checkInputParam = () => {
       msg.push(f.field)
     }
   }
+  if (!api_form_data_context.value['asker']) {
+    api_form_data_context.value['asker'] = getRouteQueryValue('asker')
+  }
+
   if (msg.length > 0) {
     MsgWarning(
       `${t('chat.tip.inputParamMessage1')} ${msg.join('、')}${t('chat.tip.inputParamMessage2')}`
@@ -323,6 +340,14 @@ const decodeQuery = (query: string) => {
   } catch (e) {
     return query
   }
+}
+const confirmHandle = () => {
+  if (checkInputParam()) {
+    emit('confirm')
+  }
+}
+const cancelHandle = () => {
+  emit('cancel')
 }
 defineExpose({ checkInputParam })
 onMounted(() => {

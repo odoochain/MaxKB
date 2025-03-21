@@ -24,10 +24,14 @@
               v-if="first"
               :image="emptyImg"
               :description="$t('views.application.hitTest.emptyMessage1')"
+              style="padding-top: 160px"
+              :image-size="125"
             />
             <el-empty
               v-else-if="paragraphDetail.length == 0"
               :description="$t('views.application.hitTest.emptyMessage2')"
+              style="padding-top: 160px"
+              :image-size="125"
             />
             <el-row v-else>
               <el-col
@@ -214,7 +218,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { reactive, ref, onMounted, computed } from 'vue'
+import { nextTick, ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { cloneDeep } from 'lodash'
 import datasetApi from '@/api/dataset'
@@ -281,17 +285,30 @@ function editParagraph(row: any) {
 }
 
 function sendChatHandle(event: any) {
-  if (!event.ctrlKey) {
-    // 如果没有按下组合键ctrl，则会阻止默认事件
+  if (!event?.ctrlKey && !event?.shiftKey && !event?.altKey && !event?.metaKey) {
+    // 如果没有按下组合键，则会阻止默认事件
     event.preventDefault()
     if (!isDisabledChart.value && !loading.value) {
       getHitTestList()
     }
   } else {
-    // 如果同时按下ctrl+回车键，则会换行
-    inputValue.value += '\n'
+    // 如果同时按下ctrl/shift/cmd/opt +enter，则会换行
+    insertNewlineAtCursor(event)
   }
 }
+const insertNewlineAtCursor = (event?: any) => {
+  const textarea = document.querySelector('.el-textarea__inner') as HTMLTextAreaElement
+  const startPos = textarea.selectionStart
+  const endPos = textarea.selectionEnd
+  // 阻止默认行为（避免额外的换行符）
+  event.preventDefault()
+  // 在光标处插入换行符
+  inputValue.value = inputValue.value.slice(0, startPos) + '\n' + inputValue.value.slice(endPos)
+  nextTick(() => {
+    textarea.setSelectionRange(startPos + 1, startPos + 1) // 光标定位到换行后位置
+  })
+}
+
 function getHitTestList() {
   const obj = {
     query_text: inputValue.value,
@@ -385,7 +402,7 @@ onMounted(() => {})
   }
 
   .hit-test-height {
-    height: calc(var(--app-main-height) - 170px);
+    height: calc(var(--app-main-height) - 135px);
   }
   .document-card {
     height: 210px;

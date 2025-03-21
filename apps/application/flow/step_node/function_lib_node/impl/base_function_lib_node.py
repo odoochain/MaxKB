@@ -16,6 +16,7 @@ from application.flow.i_step_node import NodeResult
 from application.flow.step_node.function_lib_node.i_function_lib_node import IFunctionLibNode
 from common.exception.app_exception import AppApiException
 from common.util.function_code import FunctionExecutor
+from common.util.rsa_util import rsa_long_decrypt
 from function_lib.models.function import FunctionLib
 from smartdoc.const import CONFIG
 
@@ -44,9 +45,9 @@ def get_field_value(debug_field_list, name, is_required):
 
 def valid_reference_value(_type, value, name):
     if _type == 'int':
-        instance_type = int
+        instance_type = int | float
     elif _type == 'float':
-        instance_type = float
+        instance_type = float | int
     elif _type == 'dict':
         instance_type = dict
     elif _type == 'array':
@@ -69,6 +70,10 @@ def convert_value(name: str, value, _type, is_required, source, node):
             value[0],
             value[1:])
         valid_reference_value(_type, value, name)
+        if _type == 'int':
+            return int(value)
+        if _type == 'float':
+            return float(value)
         return value
     try:
         if _type == 'int':
@@ -107,8 +112,14 @@ class BaseFunctionLibNodeNode(IFunctionLibNode):
                                              ), **field}
                    for field in
                    function_lib.input_field_list]}
+
         self.context['params'] = params
-        result = function_executor.exec_code(function_lib.code, params)
+        # 合并初始化参数
+        if function_lib.init_params is not None:
+            all_params = json.loads(rsa_long_decrypt(function_lib.init_params)) | params
+        else:
+            all_params = params
+        result = function_executor.exec_code(function_lib.code, all_params)
         return NodeResult({'result': result}, {}, _write_context=write_context)
 
     def get_details(self, index: int, **kwargs):

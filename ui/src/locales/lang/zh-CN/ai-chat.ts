@@ -23,7 +23,8 @@ export default {
     oppose: '反对',
     cancelOppose: '取消反对',
     continue: '继续',
-    stopChat: '停止回答'
+    stopChat: '停止回答',
+    startChat: '开始回答',
   },
   tip: {
     error500Message: '抱歉，当前正在维护，无法提供服务，请稍后再试！',
@@ -47,7 +48,7 @@ export default {
   inputPlaceholder: {
     speaking: '说话中',
     recorderLoading: '转文字中',
-    default: '请输入问题，Ctrl+Enter 换行'
+    default: '请输入问题'
   },
   uploadFile: {
     label: '上传文件',

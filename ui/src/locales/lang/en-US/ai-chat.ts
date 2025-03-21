@@ -23,7 +23,8 @@ export default {
     oppose: 'Dislike',
     cancelOppose: 'Undo Dislike',
     continue: 'Continue',
-    stopChat: 'Stop Response'
+    stopChat: 'Stop Response',
+    startChat: 'Start Response',
   },
   tip: {
     error500Message: 'Sorry, the service is currently under maintenance. Please try again later!',
@@ -47,7 +48,7 @@ export default {
   inputPlaceholder: {
     speaking: 'Speaking...',
     recorderLoading: 'Transcribing...',
-    default: 'Type your question, Ctrl+Enter for a new line'
+    default: 'Type your question'
   },
   uploadFile: {
     label: 'Upload File',

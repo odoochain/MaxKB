@@ -39,13 +39,13 @@ from common.exception.app_exception import AppApiException, NotFound404, AppUnau
 from common.field.common import UploadedImageField, UploadedFileField
 from common.models.db_model_manage import DBModelManage
 from common.response import result
-from common.util.common import valid_license, password_encrypt
+from common.util.common import valid_license, password_encrypt, restricted_loads
 from common.util.field_message import ErrMessage
 from common.util.file_util import get_file_content
 from dataset.models import DataSet, Document, Image
 from dataset.serializers.common_serializers import list_paragraph, get_embedding_model_by_dataset_id_list
 from embedding.models import SearchMode
-from function_lib.models.function import FunctionLib, PermissionType
+from function_lib.models.function import FunctionLib, PermissionType, FunctionType
 from function_lib.serializers.function_lib_serializer import FunctionLibSerializer, FunctionLibModelSerializer
 from setting.models import AuthOperate, TeamMemberPermission
 from setting.models.model_management import Model
@@ -60,6 +60,7 @@ chat_cache = cache.caches['chat_cache']
 
 
 class MKInstance:
+
     def __init__(self, application: dict, function_lib_list: List[dict], version: str):
         self.application = application
         self.function_lib_list = function_lib_list
@@ -727,7 +728,7 @@ class ApplicationSerializer(serializers.Serializer):
             user_id = self.data.get('user_id')
             mk_instance_bytes = self.data.get('file').read()
             try:
-                mk_instance = pickle.loads(mk_instance_bytes)
+                mk_instance = restricted_loads(mk_instance_bytes)
             except Exception as e:
                 raise AppApiException(1001, _("Unsupported file format"))
             application = mk_instance.application
@@ -810,8 +811,10 @@ class ApplicationSerializer(serializers.Serializer):
             if with_valid:
                 self.is_valid(raise_exception=True)
             application = QuerySet(Application).filter(id=self.data.get("application_id")).first()
-            return FunctionLibSerializer.Query(data={'user_id': application.user_id, 'is_active': True}).list(
-                with_valid=True)
+            return FunctionLibSerializer.Query(
+                data={'user_id': application.user_id, 'is_active': True,
+                      'function_type': FunctionType.PUBLIC}
+            ).list(with_valid=True)
 
         def get_function_lib(self, function_lib_id, with_valid=True):
             if with_valid:
@@ -981,6 +984,7 @@ class ApplicationSerializer(serializers.Serializer):
                                                 'draggable': application_setting.draggable,
                                                 'show_guide': application_setting.show_guide,
                                                 'avatar': application_setting.avatar,
+                                                'show_avatar': application_setting.show_avatar,
                                                 'float_icon': application_setting.float_icon,
                                                 'authentication': application_setting.authentication,
                                                 'authentication_type': application_setting.authentication_value.get(
@@ -989,6 +993,7 @@ class ApplicationSerializer(serializers.Serializer):
                                                 'disclaimer_value': application_setting.disclaimer_value,
                                                 'custom_theme': application_setting.custom_theme,
                                                 'user_avatar': application_setting.user_avatar,
+                                                'show_user_avatar': application_setting.show_user_avatar,
                                                 'float_location': application_setting.float_location}
             return ApplicationSerializer.Query.reset_application(
                 {**ApplicationSerializer.ApplicationModel(application).data,
