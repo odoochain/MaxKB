@@ -2,7 +2,6 @@
   <el-dialog
     align-center
     :title="$t('common.paramSetting')"
-    class="aiMode-param-dialog"
     v-model="dialogVisible"
     style="width: 550px"
     append-to-body
@@ -21,14 +20,12 @@
 
     <template #footer>
       <div class="flex-between">
-        <span class="p-16">
-          <el-button @click="testPlay" :loading="playLoading">
-            <AppIcon iconName="app-video-play" class="mr-4"></AppIcon>
-            {{ $t('views.application.applicationForm.form.voicePlay.listeningTest') }}
-            
-          </el-button>
-        </span>
-        <span class="dialog-footer p-16">
+        <el-button @click="testPlay" :loading="playLoading">
+          <AppIcon iconName="app-video-play" class="mr-4"></AppIcon>
+          {{ $t('views.application.form.voicePlay.listeningTest') }}
+        </el-button>
+
+        <span class="dialog-footer">
           <el-button @click.prevent="dialogVisible = false">
             {{ $t('common.cancel') }}
           </el-button>
@@ -44,19 +41,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { FormField } from '@/components/dynamics-form/type'
-import modelAPi from '@/api/model'
-import applicationApi from '@/api/application'
 import DynamicsForm from '@/components/dynamics-form/index.vue'
-import { keys } from 'lodash'
-import { app } from '@/main'
+import { useRoute } from 'vue-router'
 import { MsgError } from '@/utils/message'
-
+import { loadSharedApi } from '@/utils/dynamics-api/shared-api'
+const route = useRoute()
 const {
-  params: { id }
-} = app.config.globalProperties.$route as any
-
+  params: { id },
+} = route as any
+const apiType = computed(() => {
+  if (route.path.includes('resource-management')) {
+    return 'systemManage'
+  } else {
+    return 'workspace'
+  }
+})
 const tts_model_id = ref('')
 const model_form_field = ref<Array<FormField>>([])
 const emit = defineEmits(['refresh'])
@@ -65,45 +66,47 @@ const form_data = ref<any>({})
 const dialogVisible = ref(false)
 const loading = ref(false)
 const playLoading = ref(false)
-const getApi = (model_id: string, application_id?: string) => {
-  return application_id
-    ? applicationApi.getModelParamsForm(application_id, model_id, loading)
-    : modelAPi.getModelParamsForm(model_id, loading)
-}
+
 const open = (model_id: string, application_id?: string, model_setting_data?: any) => {
   form_data.value = {}
   tts_model_id.value = model_id
-  const api = getApi(model_id, application_id)
-  api.then((ok) => {
-    model_form_field.value = ok.data
-    const resp = ok.data
-      .map((item: any) => ({ [item.field]: item.show_default_value !== false ? item.default_value : undefined }))
-      .reduce((x, y) => ({ ...x, ...y }), {})
-    // 删除不存在的字段
-    if (model_setting_data) {
-      Object.keys(model_setting_data).forEach(key => {
-        if (!(key in resp)) {
-          delete model_setting_data[key];
-        }
-      });
-    }
-    model_setting_data = { ...resp, ...model_setting_data }
-    // 渲染动态表单
-    dynamicsFormRef.value?.render(model_form_field.value, model_setting_data)
-  })
+  loadSharedApi({ type: 'model', systemType: apiType.value })
+    .getModelParamsForm(model_id, loading)
+    .then((ok: any) => {
+      model_form_field.value = ok.data
+      const resp = ok.data
+        .map((item: any) => ({
+          [item.field]: item.show_default_value !== false ? item.default_value : undefined,
+        }))
+        .reduce((x: any, y: any) => ({ ...x, ...y }), {})
+      // 删除不存在的字段
+      if (model_setting_data) {
+        Object.keys(model_setting_data).forEach((key) => {
+          if (!(key in resp)) {
+            delete model_setting_data[key]
+          }
+        })
+      }
+      model_setting_data = { ...resp, ...model_setting_data }
+      // 渲染动态表单
+      dynamicsFormRef.value?.render(model_form_field.value, model_setting_data)
+    })
   dialogVisible.value = true
 }
 
 const reset_default = (model_id: string, application_id?: string) => {
-  const api = getApi(model_id, application_id)
-  api.then((ok) => {
-    model_form_field.value = ok.data
-    const model_setting_data = ok.data
-      .map((item) => ({ [item.field]: item.show_default_value !== false ? item.default_value : undefined }))
-      .reduce((x, y) => ({ ...x, ...y }), {})
+  loadSharedApi({ type: 'model', systemType: apiType.value })
+    .getModelParamsForm(model_id, loading)
+    .then((ok: any) => {
+      model_form_field.value = ok.data
+      const model_setting_data = ok.data
+        .map((item: any) => ({
+          [item.field]: item.show_default_value !== false ? item.default_value : undefined,
+        }))
+        .reduce((x: any, y: any) => ({ ...x, ...y }), {})
 
-    emit('refresh', model_setting_data)
-  })
+      emit('refresh', model_setting_data)
+    })
 }
 
 const submit = async () => {
@@ -117,9 +120,9 @@ const audioPlayer = ref<HTMLAudioElement | null>(null)
 const testPlay = () => {
   const data = {
     ...form_data.value,
-    tts_model_id: tts_model_id.value
+    tts_model_id: tts_model_id.value,
   }
-  applicationApi
+  loadSharedApi({ type: 'application', systemType: apiType.value })
     .playDemoText(id as string, data, playLoading)
     .then(async (res: any) => {
       if (res.type === 'application/json') {
@@ -141,7 +144,7 @@ const testPlay = () => {
         console.error('audioPlayer.value is not an instance of HTMLAudioElement')
       }
     })
-    .catch((err) => {
+    .catch((err: any) => {
       console.log('err: ', err)
     })
 }
@@ -149,26 +152,4 @@ const testPlay = () => {
 defineExpose({ open, reset_default })
 </script>
 
-<style lang="scss" scoped>
-.aiMode-param-dialog {
-  padding: 8px 8px 24px 8px;
-
-  .el-dialog__header {
-    padding: 16px 16px 0 16px;
-  }
-
-  .el-dialog__body {
-    padding: 16px !important;
-  }
-
-  .dialog-max-height {
-    height: 550px;
-  }
-
-  .custom-slider {
-    .el-input-number.is-without-controls .el-input__wrapper {
-      padding: 0 !important;
-    }
-  }
-}
-</style>
+<style lang="scss" scoped></style>

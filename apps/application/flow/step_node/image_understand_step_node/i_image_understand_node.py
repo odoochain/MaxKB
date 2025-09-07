@@ -5,26 +5,27 @@ from typing import Type
 from rest_framework import serializers
 
 from application.flow.i_step_node import INode, NodeResult
-from common.util.field_message import ErrMessage
+
 from django.utils.translation import gettext_lazy as _
 
 
 class ImageUnderstandNodeSerializer(serializers.Serializer):
-    model_id = serializers.CharField(required=True, error_messages=ErrMessage.char(_("Model id")))
+    model_id = serializers.CharField(required=True, label=_("Model id"))
     system = serializers.CharField(required=False, allow_blank=True, allow_null=True,
-                                   error_messages=ErrMessage.char(_("Role Setting")))
-    prompt = serializers.CharField(required=True, error_messages=ErrMessage.char(_("Prompt word")))
+                                   label=_("Role Setting"))
+    prompt = serializers.CharField(required=True, label=_("Prompt word"))
     # 多轮对话数量
-    dialogue_number = serializers.IntegerField(required=True, error_messages=ErrMessage.integer(_("Number of multi-round conversations")))
+    dialogue_number = serializers.IntegerField(required=True, label=_("Number of multi-round conversations"))
 
-    dialogue_type = serializers.CharField(required=True, error_messages=ErrMessage.char(_("Conversation storage type")))
+    dialogue_type = serializers.CharField(required=True, label=_("Conversation storage type"))
 
-    is_result = serializers.BooleanField(required=False, error_messages=ErrMessage.boolean(_('Whether to return content')))
+    is_result = serializers.BooleanField(required=False,
+                                         label=_('Whether to return content'))
 
-    image_list = serializers.ListField(required=False, error_messages=ErrMessage.list(_("picture")))
+    image_list = serializers.ListField(required=False, label=_("picture"))
 
     model_params_setting = serializers.JSONField(required=False, default=dict,
-                                                 error_messages=ErrMessage.json(_("Model parameter settings")))
+                                                 label=_("Model parameter settings"))
 
 
 class IImageUnderstandNode(INode):

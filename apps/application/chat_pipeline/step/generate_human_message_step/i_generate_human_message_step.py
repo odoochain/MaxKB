@@ -16,34 +16,35 @@ from rest_framework import serializers
 from application.chat_pipeline.I_base_chat_pipeline import IBaseChatPipelineStep, ParagraphPipelineModel
 from application.chat_pipeline.pipeline_manage import PipelineManage
 from application.models import ChatRecord
-from application.serializers.application_serializers import NoReferencesSetting
+from application.serializers.application import NoReferencesSetting
 from common.field.common import InstanceField
-from common.util.field_message import ErrMessage
 
 
 class IGenerateHumanMessageStep(IBaseChatPipelineStep):
     class InstanceSerializer(serializers.Serializer):
         # 问题
-        problem_text = serializers.CharField(required=True, error_messages=ErrMessage.char(_("question")))
+        problem_text = serializers.CharField(required=True, label=_("question"))
         # 段落列表
         paragraph_list = serializers.ListField(child=InstanceField(model_type=ParagraphPipelineModel, required=True),
-                                               error_messages=ErrMessage.list(_("Paragraph List")))
+                                               label=_("Paragraph List"))
         # 历史对答
         history_chat_record = serializers.ListField(child=InstanceField(model_type=ChatRecord, required=True),
-                                                    error_messages=ErrMessage.list(_("History Questions")))
+                                                    label=_("History Questions"))
         # 多轮对话数量
-        dialogue_number = serializers.IntegerField(required=True, error_messages=ErrMessage.integer(_("Number of multi-round conversations")))
+        dialogue_number = serializers.IntegerField(required=True, label=_("Number of multi-round conversations"))
         # 最大携带知识库段落长度
-        max_paragraph_char_number = serializers.IntegerField(required=True, error_messages=ErrMessage.integer(
-            _("Maximum length of the knowledge base paragraph")))
+        max_paragraph_char_number = serializers.IntegerField(required=True,
+                                                             label=_("Maximum length of the knowledge base paragraph"))
         # 模板
-        prompt = serializers.CharField(required=True, error_messages=ErrMessage.char(_("Prompt word")))
+        prompt = serializers.CharField(required=True, label=_("Prompt word"))
         system = serializers.CharField(required=False, allow_null=True, allow_blank=True,
-                                       error_messages=ErrMessage.char(_("System prompt words (role)")))
+                                       label=_("System prompt words (role)"))
         # 补齐问题
-        padding_problem_text = serializers.CharField(required=False, error_messages=ErrMessage.char(_("Completion problem")))
+        padding_problem_text = serializers.CharField(required=False,
+                                                     label=_("Completion problem"))
         # 未查询到引用分段
-        no_references_setting = NoReferencesSetting(required=True, error_messages=ErrMessage.base(_("No reference segment settings")))
+        no_references_setting = NoReferencesSetting(required=True,
+                                                    label=_("No reference segment settings"))
 
     def get_step_serializer(self, manage: PipelineManage) -> Type[serializers.Serializer]:
         return self.InstanceSerializer

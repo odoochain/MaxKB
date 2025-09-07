@@ -11,14 +11,14 @@ from typing import Type
 from rest_framework import serializers
 
 from application.flow.i_step_node import INode, NodeResult
-from common.util.field_message import ErrMessage
+
 from django.utils.translation import gettext_lazy as _
 
 
 class FormNodeParamsSerializer(serializers.Serializer):
-    form_field_list = serializers.ListField(required=True, error_messages=ErrMessage.list(_("Form Configuration")))
-    form_content_format = serializers.CharField(required=True, error_messages=ErrMessage.char(_('Form output content')))
-    form_data = serializers.DictField(required=False, allow_null=True, error_messages=ErrMessage.dict(_("Form Data")))
+    form_field_list = serializers.ListField(required=True, label=_("Form Configuration"))
+    form_content_format = serializers.CharField(required=True, label=_('Form output content'))
+    form_data = serializers.DictField(required=False, allow_null=True, label=_("Form Data"))
 
 
 class IFormNode(INode):

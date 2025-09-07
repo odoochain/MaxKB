@@ -5,11 +5,11 @@ import os
 from celery import Celery
 from celery.schedules import crontab
 from kombu import Exchange, Queue
-from smartdoc import settings
-from .heatbeat import *
+from maxkb import settings
+from .heartbeat import *
 
 # set the default Django settings module for the 'celery' program.
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'smartdoc.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'maxkb.settings')
 
 app = Celery('MaxKB')
 

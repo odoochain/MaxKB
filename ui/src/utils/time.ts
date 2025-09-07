@@ -1,7 +1,9 @@
 import moment from 'moment'
 import 'moment/dist/locale/zh-cn'
+
 moment.locale('zh-cn')
-import { t } from '@/locales'
+import {t} from '@/locales'
+
 // 当天日期 YYYY-MM-DD
 export const nowDate = moment().format('YYYY-MM-DD')
 
@@ -40,6 +42,7 @@ export const dateFormat = (timestamp: any) => {
 
   return `${y}-${m}-${d}`
 }
+
 
 export function fromNowDate(time: any) {
   // 拿到当前时间戳和发布时的时间戳，然后得出时间戳差

@@ -17,7 +17,7 @@ class GunicornService(BaseService):
         log_format = '%(h)s %(t)s %(L)ss "%(r)s" %(s)s %(b)s '
         bind = f'{HTTP_HOST}:{HTTP_PORT}'
         cmd = [
-            'gunicorn', 'smartdoc.wsgi:application',
+            'gunicorn', 'maxkb.wsgi:application',
             '-b', bind,
             '-k', 'gthread',
             '--threads', '200',
@@ -25,7 +25,8 @@ class GunicornService(BaseService):
             '--max-requests', '10240',
             '--max-requests-jitter', '2048',
             '--access-logformat', log_format,
-            '--access-logfile', '-'
+            '--access-logfile', '/dev/null',
+            '--error-logfile', '-'
         ]
         if DEBUG:
             cmd.append('--reload')

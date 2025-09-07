@@ -8,12 +8,11 @@
         label-position="top"
         require-asterisk-position="right"
         label-width="auto"
-        ref="DatasetNodeFormRef"
       >
         <el-form-item :label="$t('views.problem.relateParagraph.selectDocument')" :rules="{
             type: 'array',
             required: true,
-            message: $t('views.log.documentPlaceholder'),
+            message: $t('views.chatLog.documentPlaceholder'),
             trigger: 'change'
           }"
         >
@@ -21,7 +20,7 @@
             ref="nodeCascaderRef"
             :nodeModel="nodeModel"
             class="w-full"
-            :placeholder="$t('views.log.documentPlaceholder')"
+            :placeholder="$t('views.chatLog.documentPlaceholder')"
             v-model="form_data.document_list"
           />
         </el-form-item>

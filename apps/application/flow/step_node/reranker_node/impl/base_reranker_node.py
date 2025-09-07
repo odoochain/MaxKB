@@ -12,7 +12,7 @@ from langchain_core.documents import Document
 
 from application.flow.i_step_node import NodeResult
 from application.flow.step_node.reranker_node.i_reranker_node import IRerankerNode
-from setting.models_provider.tools import get_model_instance_by_model_user_id
+from models_provider.tools import get_model_instance_by_model_workspace_id
 
 
 def merge_reranker_list(reranker_list, result=None):
@@ -24,11 +24,9 @@ def merge_reranker_list(reranker_list, result=None):
         elif isinstance(document, dict):
             content = document.get('title', '') + document.get('content', '')
             title = document.get("title")
-            dataset_name = document.get("dataset_name")
-            document_name = document.get('document_name')
             result.append(
                 Document(page_content=str(document) if len(content) == 0 else content,
-                         metadata={'title': title, 'dataset_name': dataset_name, 'document_name': document_name}))
+                         metadata={'title': title, **document}))
         else:
             result.append(Document(page_content=str(document), metadata={}))
     return result
@@ -63,6 +61,20 @@ def reset_result_list(result_list: List[Document], document_list: List[Document]
     return r
 
 
+def get_none_result(question):
+    return NodeResult(
+        {'document_list': [], 'question': question,
+         'result_list': [], 'result': ''}, {})
+
+
+def reset_metadata(metadata):
+    meta = metadata.get('meta')
+    if isinstance(metadata.get('meta'), dict):
+        if not meta.get('allow_download', False):
+            metadata['meta'] = {'allow_download': False}
+    return metadata
+
+
 class BaseRerankerNode(IRerankerNode):
     def save_context(self, details, workflow_manage):
         self.context['document_list'] = details.get('document_list', [])
@@ -71,16 +83,22 @@ class BaseRerankerNode(IRerankerNode):
         self.context['result_list'] = details.get('result_list')
         self.context['result'] = details.get('result')
 
-    def execute(self, question, reranker_setting, reranker_list, reranker_model_id,
+    def execute(self, question, reranker_setting, reranker_list, reranker_model_id, show_knowledge,
                 **kwargs) -> NodeResult:
+        self.context['show_knowledge'] = show_knowledge
         documents = merge_reranker_list(reranker_list)
+        documents = [d for d in documents if d.page_content and len(d.page_content) > 0]
+        if len(documents) == 0:
+            return get_none_result(question)
         top_n = reranker_setting.get('top_n', 3)
-        self.context['document_list'] = [{'page_content': document.page_content, 'metadata': document.metadata} for
-                                         document in documents]
+        self.context['document_list'] = [
+            {'page_content': document.page_content, 'metadata': reset_metadata(document.metadata)} for
+            document in documents]
         self.context['question'] = question
-        reranker_model = get_model_instance_by_model_user_id(reranker_model_id,
-                                                             self.flow_params_serializer.data.get('user_id'),
-                                                             top_n=top_n)
+        workspace_id = self.workflow_manage.get_body().get('workspace_id')
+        reranker_model = get_model_instance_by_model_workspace_id(reranker_model_id,
+                                                                  workspace_id,
+                                                                  top_n=top_n)
         result = reranker_model.compress_documents(
             documents,
             question)
@@ -92,6 +110,7 @@ class BaseRerankerNode(IRerankerNode):
 
     def get_details(self, index: int, **kwargs):
         return {
+            'show_knowledge': self.context.get('show_knowledge'),
             'name': self.node.properties.get('stepName'),
             "index": index,
             'document_list': self.context.get('document_list'),

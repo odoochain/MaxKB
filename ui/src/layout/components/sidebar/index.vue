@@ -29,10 +29,7 @@ const route = useRoute()
 
 const showBreadcrumb = computed(() => {
   const { meta } = route as any
-  return (
-    meta?.activeMenu &&
-    (meta?.activeMenu.includes('dataset') || meta?.activeMenu.includes('application'))
-  )
+  return meta?.breadcrumb
 })
 
 const subMenuList = computed(() => {
@@ -51,6 +48,8 @@ const activeMenu = computed(() => {
   .el-menu {
     height: 100%;
     border: none;
+    background: none;
+    max-height: calc(100vh - 100px);
   }
 }
 </style>

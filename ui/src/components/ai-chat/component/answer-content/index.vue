@@ -1,11 +1,17 @@
 <template>
   <div class="item-content mb-16 lighter">
     <template v-for="(answer_text, index) in answer_text_list" :key="index">
-      <div class="avatar">
-        <img v-if="application.avatar" :src="application.avatar" height="28px" width="28px" />
-        <LogoIcon v-else height="28px" width="28px" />
+      <div class="avatar mr-8" v-if="showAvatar">
+        <img v-if="application.avatar" :src="application.avatar" height="28px" width="28px"/>
+        <LogoIcon v-else height="28px" width="28px"/>
       </div>
-      <div class="content" @mouseup="openControl">
+      <div
+        class="content"
+        @mouseup="openControl"
+        :style="{
+          'padding-right': showUserAvatar ? 'var(--padding-left)' : '0',
+        }"
+      >
         <el-card shadow="always" class="mb-8 border-r-8" style="--el-card-padding: 6px 16px">
           <MdRenderer
             v-if="
@@ -34,15 +40,27 @@
             {{ $t('chat.tip.answerLoading') }} <span class="dotting"></span>
           </p>
           <!-- 知识来源 -->
-          <KnowledgeSource
+          <KnowledgeSourceComponent
             :data="chatRecord"
-            :type="application.type"
+            :application="application"
+            :type="type"
+            :appType="application.type"
+            :executionIsRightPanel="props.executionIsRightPanel"
+            @open-execution-detail="emit('openExecutionDetail')"
+            @openParagraph="emit('openParagraph')"
+            @openParagraphDocument="(val: string) => emit('openParagraphDocument', val)"
             v-if="showSource(chatRecord) && index === chatRecord.answer_text_list.length - 1"
           />
         </el-card>
       </div>
     </template>
-    <div class="content">
+    <div
+      class="content"
+      :style="{
+        'padding-left': showAvatar ? 'var(--padding-left)' : '0',
+        'padding-right': showUserAvatar ? 'var(--padding-left)' : '0',
+      }"
+    >
       <OperationButton
         :type="type"
         :application="application"
@@ -57,28 +75,44 @@
   </div>
 </template>
 <script setup lang="ts">
-import KnowledgeSource from '@/components/ai-chat/KnowledgeSource.vue'
+import {computed, onMounted} from 'vue'
+import KnowledgeSourceComponent
+  from '@/components/ai-chat/component/knowledge-source-component/index.vue'
 import MdRenderer from '@/components/markdown/MdRenderer.vue'
 import OperationButton from '@/components/ai-chat/component/operation-button/index.vue'
-import { type chatType } from '@/api/type/application'
-import { computed } from 'vue'
+import {type chatType} from '@/api/type/application'
 import bus from '@/bus'
+
 const props = defineProps<{
   chatRecord: chatType
   application: any
   loading: boolean
-  sendMessage: (question: string, other_params_data?: any, chat?: chatType) => void
+  sendMessage: (question: string, other_params_data?: any, chat?: chatType) => Promise<boolean>
   chatManagement: any
   type: 'log' | 'ai-chat' | 'debug-ai-chat'
+  executionIsRightPanel?: boolean
 }>()
 
-const emit = defineEmits(['update:chatRecord'])
+const emit = defineEmits([
+  'update:chatRecord',
+  'openExecutionDetail',
+  'openParagraph',
+  'openParagraphDocument',
+])
 
+const showAvatar = computed(() => {
+  return props.application.show_avatar == undefined ? true : props.application.show_avatar
+})
+const showUserAvatar = computed(() => {
+  return props.application.show_user_avatar == undefined ? true : props.application.show_user_avatar
+})
 const chatMessage = (question: string, type: 'old' | 'new', other_params_data?: any) => {
   if (type === 'old') {
     add_answer_text_list(props.chatRecord.answer_text_list)
-    props.sendMessage(question, other_params_data, props.chatRecord)
-    props.chatManagement.write(props.chatRecord.id)
+    props.sendMessage(question, other_params_data, props.chatRecord).then(() => {
+      props.chatManagement.open(props.chatRecord.id)
+      props.chatManagement.write(props.chatRecord.id)
+    })
   } else {
     props.sendMessage(question, other_params_data)
   }
@@ -102,8 +136,8 @@ const answer_text_list = computed(() => {
           chat_record_id: undefined,
           child_node: undefined,
           runtime_node_id: undefined,
-          reasoning_content: undefined
-        }
+          reasoning_content: undefined,
+        },
       ]
     } else if (item instanceof Array) {
       return item
@@ -117,14 +151,13 @@ function showSource(row: any) {
   if (props.type === 'log') {
     return true
   } else if (row.write_ed && 500 !== row.status) {
-    if (props.type === 'debug-ai-chat' || props.application?.show_source) {
-      return true
-    }
+    return true
   }
   return false
 }
+
 const regenerationChart = (chat: chatType) => {
-  props.sendMessage(chat.problem_text, { re_chat: true })
+  props.sendMessage(chat.problem_text, {re_chat: true})
 }
 const stopChat = (chat: chatType) => {
   props.chatManagement.stop(chat.id)
@@ -132,5 +165,11 @@ const stopChat = (chat: chatType) => {
 const startChat = (chat: chatType) => {
   props.chatManagement.write(chat.id)
 }
+
+onMounted(() => {
+  bus.on('chat:stop', () => {
+    stopChat(props.chatRecord)
+  })
+})
 </script>
 <style lang="scss" scoped></style>

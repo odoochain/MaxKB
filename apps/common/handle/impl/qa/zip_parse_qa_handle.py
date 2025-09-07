@@ -9,20 +9,20 @@
 import io
 import os
 import re
-import uuid
 import zipfile
 from typing import List
 from urllib.parse import urljoin
 
-from django.db.models import QuerySet
+import uuid_utils.compat as uuid
+from django.utils.translation import gettext_lazy as _
 
 from common.handle.base_parse_qa_handle import BaseParseQAHandle
 from common.handle.impl.qa.csv_parse_qa_handle import CsvParseQAHandle
 from common.handle.impl.qa.xls_parse_qa_handle import XlsParseQAHandle
 from common.handle.impl.qa.xlsx_parse_qa_handle import XlsxParseQAHandle
-from common.util.common import parse_md_image
-from dataset.models import Image
-from django.utils.translation import gettext_lazy as _
+from common.utils.common import parse_md_image
+from knowledge.models import File
+
 
 class FileBufferHandle:
     buffer = None
@@ -33,20 +33,14 @@ class FileBufferHandle:
         return self.buffer
 
 
-split_handles = [XlsParseQAHandle(), XlsxParseQAHandle(), CsvParseQAHandle()]
+split_handles = [
+    XlsParseQAHandle(),
+    XlsxParseQAHandle(),
+    CsvParseQAHandle()
+]
 
 
-def save_inner_image(image_list):
-    """
-    子模块插入图片逻辑
-    @param image_list:
-    @return:
-    """
-    if image_list is not None and len(image_list) > 0:
-        QuerySet(Image).bulk_create(image_list)
-
-
-def file_to_paragraph(file):
+def file_to_paragraph(file, save_inner_image):
     """
     文件转换为段落列表
     @param file: 文件
@@ -90,26 +84,26 @@ def get_image_list(result_list: list, zip_files: List[str]):
             for image in image_list:
                 search = re.search("\(.*\)", image)
                 if search:
-                    new_image_id = str(uuid.uuid1())
+                    new_image_id = str(uuid.uuid7())
                     source_image_path = search.group().replace('(', '').replace(')', '')
                     image_path = urljoin(result.get('name'), '.' + source_image_path if source_image_path.startswith(
                         '/') else source_image_path)
                     if not zip_files.__contains__(image_path):
                         continue
-                    if image_path.startswith('api/file/') or image_path.startswith('api/image/'):
-                        image_id = image_path.replace('api/file/', '').replace('api/image/', '')
+                    if image_path.startswith('oss/file/') or image_path.startswith('oss/image/'):
+                        image_id = image_path.replace('oss/file/', '')
                         if is_valid_uuid(image_id):
                             image_file_list.append({'source_file': image_path,
                                                     'image_id': image_id})
                         else:
                             image_file_list.append({'source_file': image_path,
                                                     'image_id': new_image_id})
-                            content = content.replace(source_image_path, f'/api/image/{new_image_id}')
+                            content = content.replace(source_image_path, f'./oss/file/{new_image_id}')
                             p['content'] = content
                     else:
                         image_file_list.append({'source_file': image_path,
                                                 'image_id': new_image_id})
-                        content = content.replace(source_image_path, f'/api/image/{new_image_id}')
+                        content = content.replace(source_image_path, f'./oss/file/{new_image_id}')
                         p['content'] = content
 
     return image_file_list
@@ -132,12 +126,13 @@ class ZipParseQAHandle(BaseParseQAHandle):
             files = zip_ref.namelist()
             # 读取压缩包中的文件内容
             for file in files:
-                if file.endswith('/'):
+                # 跳过 macOS 特有的元数据目录和文件
+                if file.endswith('/') or file.startswith('__MACOSX'):
                     continue
                 with zip_ref.open(file) as f:
                     # 对文件内容进行处理
                     try:
-                        value = file_to_paragraph(f)
+                        value = file_to_paragraph(f, save_image)
                         if isinstance(value, list):
                             result = [*result, *value]
                         else:
@@ -149,8 +144,11 @@ class ZipParseQAHandle(BaseParseQAHandle):
             image_mode_list = []
             for image in image_list:
                 with zip_ref.open(image.get('source_file')) as f:
-                    i = Image(id=image.get('image_id'), image=f.read(),
-                              image_name=os.path.basename(image.get('source_file')))
+                    i = File(
+                        id=image.get('image_id'),
+                        file_name=os.path.basename(image.get('source_file')),
+                        meta={'debug': False, 'content': f.read()}
+                    )
                     image_mode_list.append(i)
             save_image(image_mode_list)
         return result

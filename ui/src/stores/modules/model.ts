@@ -1,14 +1,27 @@
 import { defineStore } from 'pinia'
-import modelApi from '@/api/model'
-import type { ListModelRequest, Provider } from '@/api/type/model'
-const useModelStore = defineStore({
-  id: 'model',
+import { type Ref } from 'vue'
+import ProviderApi from '@/api/model/provider'
+import ModelApi from '@/api/model/model'
+import type { ListModelRequest } from '@/api/type/model'
+
+const useModelStore = defineStore('model', {
   state: () => ({}),
   actions: {
-    async asyncGetModel(data?: ListModelRequest) {
+    // 仅限在应用下拉列表使用，非共享资源
+    async asyncGetSelectModel(data?: ListModelRequest, loading?: Ref<boolean>) {
       return new Promise((resolve, reject) => {
-        modelApi
-          .getModel(data)
+        ModelApi.getSelectModelList(data, loading)
+          .then((res: any) => {
+            resolve(res)
+          })
+          .catch((error: any) => {
+            reject(error)
+          })
+      })
+    },
+    async asyncGetProvider(loading?: Ref<boolean>) {
+      return new Promise((resolve, reject) => {
+        ProviderApi.getProvider(loading)
           .then((res) => {
             resolve(res)
           })
@@ -17,19 +30,7 @@ const useModelStore = defineStore({
           })
       })
     },
-    async asyncGetProvider() {
-      return new Promise((resolve, reject) => {
-        modelApi
-          .getProvider()
-          .then((res) => {
-            resolve(res)
-          })
-          .catch((error) => {
-            reject(error)
-          })
-      })
-    }
-  }
+  },
 })
 
 export default useModelStore

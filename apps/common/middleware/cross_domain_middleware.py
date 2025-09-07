@@ -1,7 +1,7 @@
 # coding=utf-8
 """
-    @project: maxkb
-    @Author：虎
+    @project: MaxKB
+    @Author：虎虎
     @file： cross_domain_middleware.py
     @date：2024/5/8 13:36
     @desc:
@@ -25,7 +25,7 @@ class CrossDomainMiddleware(MiddlewareMixin):
     def process_response(self, request, response):
         auth = request.META.get('HTTP_AUTHORIZATION')
         origin = request.META.get('HTTP_ORIGIN')
-        if auth is not None and str(auth).startswith("application-") and origin is not None:
+        if auth is not None and str(auth).startswith("Bearer application-") and origin is not None:
             application_api_key = get_application_api_key(str(auth), True)
             cross_domain_list = application_api_key.get('cross_domain_list', [])
             allow_cross_domain = application_api_key.get('allow_cross_domain', False)

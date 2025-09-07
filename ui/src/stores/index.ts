@@ -1,28 +1,26 @@
-import { createPinia } from 'pinia'
-const store = createPinia()
-export { store }
 import useCommonStore from './modules/common'
+import useLoginStore from './modules/login'
 import useUserStore from './modules/user'
-import useDatasetStore from './modules/dataset'
-import useParagraphStore from './modules/paragraph'
+import useFolderStore from './modules/folder'
+import useThemeStore from './modules/theme'
+import useKnowledgeStore from './modules/knowledge'
 import useModelStore from './modules/model'
-import useApplicationStore from './modules/application'
-import useDocumentStore from './modules/document'
-import useProblemStore from './modules/problem'
-import useLogStore from './modules/log'
 import usePromptStore from './modules/prompt'
-
+import useApplicationStore from './modules/application'
+import useChatUserStore from './modules/chat-user'
+import useToolStore from './modules/tool'
 const useStore = () => ({
   common: useCommonStore(),
+  login: useLoginStore(),
   user: useUserStore(),
-  dataset: useDatasetStore(),
-  paragraph: useParagraphStore(),
+  folder: useFolderStore(),
+  theme: useThemeStore(),
+  knowledge: useKnowledgeStore(),
   model: useModelStore(),
-  application: useApplicationStore(),
-  document: useDocumentStore(),
-  problem: useProblemStore(),
-  log: useLogStore(),
   prompt: usePromptStore(),
+  application: useApplicationStore(),
+  chatUser: useChatUserStore(),
+  tool: useToolStore(),
 })
 
 export default useStore

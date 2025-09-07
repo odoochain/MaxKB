@@ -6,12 +6,14 @@
     @date：2023/10/23 16:03
     @desc:
 """
+
 import threading
 import time
 
 from common.cache.mem_cache import MemCache
 
-lock = threading.Lock()
+_lock = threading.Lock()
+locks = {}
 
 
 class ModelManage:
@@ -19,27 +21,41 @@ class ModelManage:
     up_clear_time = time.time()
 
     @staticmethod
+    def _get_lock(_id):
+        lock = locks.get(_id)
+        if lock is None:
+            with _lock:
+                lock = locks.get(_id)
+                if lock is None:
+                    lock = threading.Lock()
+                    locks[_id] = lock
+
+        return lock
+
+    @staticmethod
     def get_model(_id, get_model):
-        # 获取锁
-        lock.acquire()
-        try:
-            model_instance = ModelManage.cache.get(_id)
-            if model_instance is None or not model_instance.is_cache_model():
+        model_instance = ModelManage.cache.get(_id)
+        if model_instance is None:
+            lock = ModelManage._get_lock(_id)
+            with lock:
+                model_instance = ModelManage.cache.get(_id)
+                if model_instance is None:
+                    model_instance = get_model(_id)
+                    ModelManage.cache.set(_id, model_instance, timeout=60 * 60 * 8)
+        else:
+            if model_instance.is_cache_model():
+                ModelManage.cache.touch(_id, timeout=60 * 60 * 8)
+            else:
                 model_instance = get_model(_id)
-                ModelManage.cache.set(_id, model_instance, timeout=60 * 30)
-                return model_instance
-            # 续期
-            ModelManage.cache.touch(_id, timeout=60 * 30)
-            ModelManage.clear_timeout_cache()
-            return model_instance
-        finally:
-            # 释放锁
-            lock.release()
+                ModelManage.cache.set(_id, model_instance, timeout=60 * 60 * 8)
+        ModelManage.clear_timeout_cache()
+        return model_instance
 
     @staticmethod
     def clear_timeout_cache():
-        if time.time() - ModelManage.up_clear_time > 60:
-            ModelManage.cache.clear_timeout_data()
+        if time.time() - ModelManage.up_clear_time > 60 * 60:
+            threading.Thread(target=lambda: ModelManage.cache.clear_timeout_data()).start()
+            ModelManage.up_clear_time = time.time()
 
     @staticmethod
     def delete_key(_id):
@@ -48,8 +64,8 @@ class ModelManage:
 
 
 class VectorStore:
-    from embedding.vector.pg_vector import PGVector
-    from embedding.vector.base_vector import BaseVectorStore
+    from knowledge.vector.pg_vector import PGVector
+    from knowledge.vector.base_vector import BaseVectorStore
     instance_map = {
         'pg_vector': PGVector,
     }
@@ -57,9 +73,9 @@ class VectorStore:
 
     @staticmethod
     def get_embedding_vector() -> BaseVectorStore:
-        from embedding.vector.pg_vector import PGVector
+        from knowledge.vector.pg_vector import PGVector
         if VectorStore.instance is None:
-            from smartdoc.const import CONFIG
+            from maxkb.const import CONFIG
             vector_store_class = VectorStore.instance_map.get(CONFIG.get("VECTOR_STORE_NAME"),
                                                               PGVector)
             VectorStore.instance = vector_store_class()

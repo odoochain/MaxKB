@@ -15,10 +15,10 @@
           prop="question_reference_address"
           :rules="{
             message: $t(
-              'views.applicationWorkflow.nodes.searchDatasetNode.searchQuestion.requiredMessage'
+              'views.applicationWorkflow.nodes.searchKnowledgeNode.searchQuestion.requiredMessage',
             ),
             trigger: 'blur',
-            required: true
+            required: true,
           }"
         >
           <NodeCascader
@@ -26,7 +26,7 @@
             :nodeModel="nodeModel"
             class="w-full"
             :placeholder="
-              $t('views.applicationWorkflow.nodes.searchDatasetNode.searchQuestion.placeholder')
+              $t('views.applicationWorkflow.nodes.searchKnowledgeNode.searchQuestion.placeholder')
             "
             v-model="form_data.question_reference_address"
           />
@@ -37,16 +37,16 @@
           :label="$t('views.problem.relateParagraph.selectDocument')"
           prop="document_list"
           :rules="{
-            message: $t('views.log.documentPlaceholder'),
+            message: $t('views.chatLog.documentPlaceholder'),
             trigger: 'blur',
-            required: false
+            required: false,
           }"
         >
           <NodeCascader
             ref="nodeCascaderRef"
             :nodeModel="nodeModel"
             class="w-full"
-            :placeholder="$t('views.log.documentPlaceholder')"
+            :placeholder="$t('views.chatLog.documentPlaceholder')"
             v-model="form_data.document_list"
           />
         </el-form-item>
@@ -57,10 +57,10 @@
           prop="image_list"
           :rules="{
             message: $t(
-              'views.applicationWorkflow.nodes.imageUnderstandNode.image.requiredMessage'
+              'views.applicationWorkflow.nodes.imageUnderstandNode.image.requiredMessage',
             ),
             trigger: 'blur',
-            required: false
+            required: false,
           }"
         >
           <NodeCascader
@@ -81,7 +81,7 @@
           :rules="{
             message: $t('views.applicationWorkflow.nodes.speechToTextNode.audio.placeholder'),
             trigger: 'blur',
-            required: false
+            required: false,
           }"
         >
           <NodeCascader
@@ -100,8 +100,8 @@
               {
                 required: field.is_required,
                 message: `${$t('common.inputPlaceholder')}${field.variable}`,
-                trigger: 'blur'
-              }
+                trigger: 'blur',
+              },
             ]"
           >
             <NodeCascader
@@ -109,7 +109,7 @@
               :nodeModel="nodeModel"
               class="w-full"
               :placeholder="
-                $t('views.applicationWorkflow.nodes.searchDatasetNode.searchQuestion.placeholder')
+                $t('views.applicationWorkflow.nodes.searchKnowledgeNode.searchQuestion.placeholder')
               "
               v-model="form_data.api_input_field_list[index].value"
             />
@@ -124,8 +124,8 @@
               {
                 required: field.required,
                 message: `${$t('common.inputPlaceholder')}${field.label}`,
-                trigger: 'blur'
-              }
+                trigger: 'blur',
+              },
             ]"
           >
             <NodeCascader
@@ -133,7 +133,7 @@
               :nodeModel="nodeModel"
               class="w-full"
               :placeholder="
-                $t('views.applicationWorkflow.nodes.searchDatasetNode.searchQuestion.placeholder')
+                $t('views.applicationWorkflow.nodes.searchKnowledgeNode.searchQuestion.placeholder')
               "
               v-model="form_data.user_input_field_list[index].value"
             />
@@ -146,10 +146,9 @@
           <template #label>
             <div class="flex align-center">
               <div class="mr-4">
-                <span
-                  >{{ $t('views.applicationWorkflow.nodes.aiChatNode.returnContent.label')
-                  }}<span class="danger">*</span></span
-                >
+                <span>{{
+                  $t('views.applicationWorkflow.nodes.aiChatNode.returnContent.label')
+                }}</span>
               </div>
               <el-tooltip effect="dark" placement="right" popper-class="max-w-200">
                 <template #content>
@@ -167,27 +166,32 @@
 </template>
 
 <script setup lang="ts">
-import { set, groupBy, create } from 'lodash'
-import { app } from '@/main'
+import { set, groupBy, create, cloneDeep } from 'lodash'
 import NodeContainer from '@/workflow/common/NodeContainer.vue'
 import { ref, computed, onMounted, onActivated } from 'vue'
 import NodeCascader from '@/workflow/common/NodeCascader.vue'
 import type { FormInstance } from 'element-plus'
-import applicationApi from '@/api/application'
 import { isWorkFlow } from '@/utils/application'
+import { useRoute } from 'vue-router'
+import { loadSharedApi } from '@/utils/dynamics-api/shared-api'
 
+const route = useRoute()
+
+const apiType = computed(() => {
+  if (route.path.includes('resource-management')) {
+    return 'systemManage'
+  } else {
+    return 'workspace'
+  }
+})
 const form = {
   question_reference_address: ['start-node', 'question'],
   api_input_field_list: [],
   user_input_field_list: [],
   document_list: ['start-node', 'document'],
   image_list: ['start-node', 'image'],
-  audio_list: ['start-node', 'audio']
+  audio_list: ['start-node', 'audio'],
 }
-
-const {
-  params: { id }
-} = app.config.globalProperties.$route as any
 
 const applicationNodeFormRef = ref<FormInstance>()
 
@@ -202,7 +206,7 @@ const form_data = computed({
   },
   set: (value) => {
     set(props.nodeModel.properties, 'node_data', value)
-  }
+  },
 })
 
 function handleFileUpload(type: string, isEnabled: boolean) {
@@ -222,26 +226,36 @@ const update_field = () => {
     set(props.nodeModel.properties, 'status', 500)
     return
   }
-  applicationApi
-    .getApplicationById(id, props.nodeModel.properties.node_data.application_id)
-    .then((ok) => {
-      const old_api_input_field_list = props.nodeModel.properties.node_data.api_input_field_list
-      const old_user_input_field_list = props.nodeModel.properties.node_data.user_input_field_list
+  loadSharedApi({ type: 'application', systemType: apiType.value })
+    .getApplicationDetail(props.nodeModel.properties.node_data.application_id)
+    .then((ok: any) => {
+      const old_api_input_field_list = cloneDeep(
+        props.nodeModel.properties.node_data.api_input_field_list,
+      )
+      const old_user_input_field_list = cloneDeep(
+        props.nodeModel.properties.node_data.user_input_field_list,
+      )
       if (isWorkFlow(ok.data.type)) {
         const nodeData = ok.data.work_flow.nodes[0].properties.node_data
-        const new_api_input_field_list = ok.data.work_flow.nodes[0].properties.api_input_field_list
-        const new_user_input_field_list =
-          ok.data.work_flow.nodes[0].properties.user_input_field_list
-        const merge_api_input_field_list = new_api_input_field_list.map((item: any) => {
-          const find_field = old_api_input_field_list.find(
-            (old_item: any) => old_item.variable == item.variable
+        const new_api_input_field_list = cloneDeep(
+          ok.data.work_flow.nodes[0].properties.api_input_field_list,
+        )
+        const new_user_input_field_list = cloneDeep(
+          ok.data.work_flow.nodes[0].properties.user_input_field_list,
+        )
+
+        const merge_api_input_field_list = (new_api_input_field_list || []).map((item: any) => {
+          const find_field = old_api_input_field_list?.find(
+            (old_item: any) => old_item.variable == item.variable,
           )
           if (find_field) {
             return {
               ...item,
               value: find_field.value,
               label:
-                typeof item.label === 'object' && item.label != null ? item.label.label : item.label
+                typeof item.label === 'object' && item.label != null
+                  ? item.label.label
+                  : item.label,
             }
           } else {
             return item
@@ -250,18 +264,20 @@ const update_field = () => {
         set(
           props.nodeModel.properties.node_data,
           'api_input_field_list',
-          merge_api_input_field_list
+          merge_api_input_field_list,
         )
-        const merge_user_input_field_list = new_user_input_field_list.map((item: any) => {
-          const find_field = old_user_input_field_list.find(
-            (old_item: any) => old_item.field == item.field
+        const merge_user_input_field_list = (new_user_input_field_list || []).map((item: any) => {
+          const find_field = old_user_input_field_list?.find(
+            (old_item: any) => old_item.field == item.field,
           )
           if (find_field) {
             return {
               ...item,
               value: find_field.value,
               label:
-                typeof item.label === 'object' && item.label != null ? item.label.label : item.label
+                typeof item.label === 'object' && item.label != null
+                  ? item.label.label
+                  : item.label,
             }
           } else {
             return item
@@ -270,7 +286,7 @@ const update_field = () => {
         set(
           props.nodeModel.properties.node_data,
           'user_input_field_list',
-          merge_user_input_field_list
+          merge_user_input_field_list,
         )
         const fileEnable = nodeData.file_upload_enable
         const fileUploadSetting = nodeData.file_upload_setting
@@ -287,8 +303,9 @@ const update_field = () => {
         set(props.nodeModel.properties, 'status', ok.data.id ? 200 : 500)
       }
     })
-    .catch((err) => {
-      // set(props.nodeModel.properties, 'status', 500)
+    .catch((err: any) => {
+      console.log(err)
+      set(props.nodeModel.properties, 'status', 500)
     })
 }
 

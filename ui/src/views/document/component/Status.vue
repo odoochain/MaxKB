@@ -15,24 +15,24 @@
       ></StatusTable>
     </template>
     <template #reference>
-      <el-text v-if="aggStatus?.value === State.SUCCESS || aggStatus?.value === State.REVOKED">
-        <el-icon class="success"><SuccessFilled /></el-icon>
+      <el-text class="color-text-primary" v-if="aggStatus?.value === State.SUCCESS || aggStatus?.value === State.REVOKED">
+        <el-icon class="color-success"><SuccessFilled /></el-icon>
         {{ stateMap[aggStatus.value](aggStatus.key) }}
       </el-text>
-      <el-text v-else-if="aggStatus?.value === State.FAILURE">
-        <el-icon class="danger"><CircleCloseFilled /></el-icon>
+      <el-text class="color-text-primary" v-else-if="aggStatus?.value === State.FAILURE">
+        <el-icon class="color-danger"><CircleCloseFilled /></el-icon>
         {{ stateMap[aggStatus.value](aggStatus.key) }}
       </el-text>
-      <el-text v-else-if="aggStatus?.value === State.STARTED">
-        <el-icon class="is-loading primary"><Loading /></el-icon>
+      <el-text class="color-text-primary" v-else-if="aggStatus?.value === State.STARTED">
+        <el-icon class="is-loading color-primary"><Loading /></el-icon>
         {{ stateMap[aggStatus.value](aggStatus.key) }}
       </el-text>
-      <el-text v-else-if="aggStatus?.value === State.PENDING">
-        <el-icon class="is-loading primary"><Loading /></el-icon>
+      <el-text class="color-text-primary" v-else-if="aggStatus?.value === State.PENDING">
+        <el-icon class="is-loading color-primary"><Loading /></el-icon>
         {{ stateMap[aggStatus.value](aggStatus.key) }}
       </el-text>
-      <el-text v-else-if="aggStatus?.value === State.REVOKE">
-        <el-icon class="is-loading primary"><Loading /></el-icon>
+      <el-text class="color-text-primary" v-else-if="aggStatus?.value === State.REVOKE">
+        <el-icon class="is-loading color-primary"><Loading /></el-icon>
         {{ stateMap[aggStatus.value](aggStatus.key) }}
       </el-text>
     </template>
@@ -71,9 +71,9 @@ const startedMap = {
   [TaskType.SYNC]: t('views.document.fileStatus.SYNC')
 }
 const taskTypeMap = {
-  [TaskType.EMBEDDING]: t('views.dataset.setting.vectorization'),
+  [TaskType.EMBEDDING]: t('views.knowledge.setting.vectorization'),
   [TaskType.GENERATE_PROBLEM]: t('views.document.generateQuestion.title'),
-  [TaskType.SYNC]: t('views.dataset.setting.sync')
+  [TaskType.SYNC]: t('views.knowledge.setting.sync')
 }
 const stateMap: any = {
   [State.PENDING]: (type: number) => t('views.document.fileStatus.PENDING'),

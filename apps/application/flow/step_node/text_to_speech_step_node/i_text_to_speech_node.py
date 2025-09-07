@@ -5,18 +5,19 @@ from typing import Type
 from rest_framework import serializers
 
 from application.flow.i_step_node import INode, NodeResult
-from common.util.field_message import ErrMessage
+
 from django.utils.translation import gettext_lazy as _
 
 
 class TextToSpeechNodeSerializer(serializers.Serializer):
-    tts_model_id = serializers.CharField(required=True, error_messages=ErrMessage.char(_("Model id")))
+    tts_model_id = serializers.CharField(required=True, label=_("Model id"))
 
-    is_result = serializers.BooleanField(required=False, error_messages=ErrMessage.boolean(_('Whether to return content')))
+    is_result = serializers.BooleanField(required=False,
+                                         label=_('Whether to return content'))
 
-    content_list = serializers.ListField(required=True, error_messages=ErrMessage.list(_("Text content")))
+    content_list = serializers.ListField(required=True, label=_("Text content"))
     model_params_setting = serializers.DictField(required=False,
-                                                 error_messages=ErrMessage.integer(_("Model parameter settings")))
+                                                 label=_("Model parameter settings"))
 
 
 class ITextToSpeechNode(INode):

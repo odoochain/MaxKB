@@ -1,25 +1,28 @@
 <template>
-  <div v-for="status in statusTable" :key="status.type" >
+  <div v-for="status in statusTable" :key="status.type">
     <span> {{ taskTypeMap[status.type] }}：</span>
     <span>
-      <el-text v-if="status.state === State.SUCCESS || status.state === State.REVOKED">
-        <el-icon class="success"><SuccessFilled /></el-icon>
+      <el-text
+        class="color-text-primary"
+        v-if="status.state === State.SUCCESS || status.state === State.REVOKED"
+      >
+        <el-icon class="color-success"><SuccessFilled /></el-icon>
         {{ stateMap[status.state](status.type) }}
       </el-text>
-      <el-text v-else-if="status.state === State.FAILURE">
-        <el-icon class="danger"><CircleCloseFilled /></el-icon>
+      <el-text class="color-text-primary" v-else-if="status.state === State.FAILURE">
+        <el-icon class="color-danger"><CircleCloseFilled /></el-icon>
         {{ stateMap[status.state](status.type) }}
       </el-text>
-      <el-text v-else-if="status.state === State.STARTED">
-        <el-icon class="is-loading primary"><Loading /></el-icon>
+      <el-text class="color-text-primary" v-else-if="status.state === State.STARTED">
+        <el-icon class="is-loading color-primary"><Loading /></el-icon>
         {{ stateMap[status.state](status.type) }}
       </el-text>
-      <el-text v-else-if="status.state === State.PENDING">
-        <el-icon class="is-loading primary"><Loading /></el-icon>
+      <el-text class="color-text-primary" v-else-if="status.state === State.PENDING">
+        <el-icon class="is-loading color-primary"><Loading /></el-icon>
         {{ stateMap[status.state](status.type) }}
       </el-text>
-      <el-text v-else-if="status.state === State.REVOKE">
-        <el-icon class="is-loading primary"><Loading /></el-icon>
+      <el-text class="color-text-primary" v-else-if="status.state === State.REVOKE">
+        <el-icon class="is-loading color-primary"><Loading /></el-icon>
         {{ stateMap[status.state](status.type) }}
       </el-text>
     </span>
@@ -27,7 +30,7 @@
       class="ml-8 lighter"
       :style="{ color: [State.FAILURE, State.REVOKED].includes(status.state) ? '#F54A45' : '' }"
     >
-    {{ $t('views.document.fileStatus.finish') }}
+      {{ $t('views.document.fileStatus.finish') }}
       {{
         Object.keys(status.aggs ? status.aggs : {})
           .filter((k) => k == State.SUCCESS)
@@ -42,7 +45,7 @@
         status.time
           ? status.time[status.state == State.REVOKED ? State.REVOKED : State.PENDING]?.substring(
               0,
-              19
+              19,
             )
           : undefined
       }}
@@ -100,7 +103,7 @@ const statusTable = computed(() => {
         type: value,
         state: parseStatus.task_status[value],
         aggs: aggs.value[value],
-        time: props.statusMeta.state_time[value]
+        time: props.statusMeta.state_time[value],
       }
     })
     .filter((item) => item.state !== State.IGNORED)

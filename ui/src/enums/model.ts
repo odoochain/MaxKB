@@ -3,16 +3,16 @@ export enum PermissionType {
   PUBLIC = 'common.public'
 }
 export enum PermissionDesc {
-  PRIVATE = 'views.template.templateForm.form.permissionType.privateDesc',
-  PUBLIC = 'views.template.templateForm.form.permissionType.publicDesc',
+  PRIVATE = 'views.model.modelForm.permissionType.privateDesc',
+  PUBLIC = 'views.model.modelForm.permissionType.publicDesc',
 }
 
 export enum modelType {
-  EMBEDDING = 'views.template.model.EMBEDDING',
-  LLM = 'views.template.model.LLM',
-  STT = 'views.template.model.STT',
-  TTS = 'views.template.model.TTS',
-  IMAGE = 'views.template.model.IMAGE',
-  TTI = 'views.template.model.TTI',
-  RERANKER = 'views.template.model.RERANKER'
+  EMBEDDING = 'views.model.modelType.EMBEDDING',
+  LLM = 'views.model.modelType.LLM',
+  STT = 'views.model.modelType.STT',
+  TTS = 'views.model.modelType.TTS',
+  IMAGE = 'views.model.modelType.IMAGE',
+  TTI = 'views.model.modelType.TTI',
+  RERANKER = 'views.model.modelType.RERANKER'
 }

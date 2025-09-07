@@ -15,14 +15,14 @@
         :parent_field="formField.field + '.' + index"
       ></DynamicsForm>
       <el-tooltip effect="dark" :content="$t('common.delete')" placement="top">
-        <el-button text @click.stop="deleteDataset(item)" class="delete-button">
-          <el-icon><Delete /></el-icon>
+        <el-button text @click.stop="deleteKnowledge(item)" class="delete-button">
+          <AppIcon iconName="app-delete"></AppIcon>
         </el-button>
       </el-tooltip>
     </el-card>
     <el-card shadow="never" class="card-add box-card" @click="add_card">
       <div class="flex-center">
-        <AppIcon iconName="Plus" class="add-icon layout-bg p-8 border-r-4" />
+        <AppIcon iconName="Plus" class="add-icon layout-bg p-8 border-r-6" />
         <span>{{ add_msg }}</span>
       </div>
     </el-card>
@@ -47,7 +47,7 @@ const props = defineProps<{
 const render_data = () => {
   return Promise.resolve(Result.success(props.formField.children as Array<FormField>))
 }
-const deleteDataset = (item: any) => {
+const deleteKnowledge = (item: any) => {
   _data.value = _data.value.filter((row) => row !== item)
 }
 const emit = defineEmits(['update:modelValue', 'change'])
@@ -66,7 +66,7 @@ const _data = computed<Array<any>>({
   },
   set(value) {
     emit('update:modelValue', value)
-  }
+  },
 })
 
 const props_info = computed(() => {
@@ -110,7 +110,7 @@ const other = computed(() => {
 
 defineExpose({
   validate,
-  field: props.field
+  field: props.field,
 })
 </script>
 <style lang="scss" scoped>
@@ -129,7 +129,7 @@ defineExpose({
     cursor: pointer;
     min-height: var(--card-min-height);
     border: 1px dashed var(--el-color-primary);
-    background: var(--el-disabled-bg-color);;
+    background: var(--el-disabled-bg-color);
     padding-bottom: 20px;
 
     .add-icon {

@@ -1,5 +1,5 @@
 <template>
-  <div class="workflow-publish-history border-l">
+  <div class="workflow-publish-history border-l white-bg">
     <h4 class="border-b p-16-24">{{ $t('views.applicationWorkflow.setting.releaseHistory') }}</h4>
     <div class="list-height pt-0">
       <el-scrollbar>
@@ -15,7 +15,7 @@
             <template #default="{ row, index }">
               <div class="flex-between">
                 <div style="max-width: 80%">
-                  <h5 :class="index === 0 ? 'primary' : ''" class="flex">
+                  <h5 :class="index === 0 ? 'primary' : ''" class="flex align-center">
                     <ReadWrite
                       @change="editName($event, row)"
                       :data="row.name || datetimeFormat(row.update_time)"
@@ -27,10 +27,10 @@
                       $t('views.applicationWorkflow.setting.latestRelease')
                     }}</el-tag>
                   </h5>
-                  <el-text type="info" class="color-secondary flex mt-8">
-                    <AppAvatar :size="20" class="avatar-grey mr-4">
+                  <el-text type="info" class="color-secondary flex align-center mt-8">
+                    <el-avatar :size="20" class="avatar-grey mr-4">
                       <el-icon><UserFilled /></el-icon>
-                    </AppAvatar>
+                    </el-avatar>
                     {{ row.publish_user_name }}
                   </el-text>
                 </div>
@@ -38,16 +38,16 @@
                 <div @click.stop v-show="mouseId === row.id">
                   <el-dropdown trigger="click" :teleported="false">
                     <el-button text>
-                      <el-icon><MoreFilled /></el-icon>
+                      <AppIcon iconName="app-more"></AppIcon>
                     </el-button>
                     <template #dropdown>
                       <el-dropdown-menu>
                         <el-dropdown-item @click.stop="openEditVersion(row)">
-                          <el-icon><EditPen /></el-icon>
+                          <AppIcon iconName="app-edit" class="color-secondary"></AppIcon>
                           {{ $t('common.edit') }}
                         </el-dropdown-item>
                         <el-dropdown-item @click="refreshVersion(row)">
-                          <el-icon><RefreshLeft /></el-icon>
+                          <el-icon class="color-secondary"><RefreshLeft /></el-icon>
                           {{ $t('views.applicationWorkflow.setting.restoreCurrentVersion') }}
                         </el-dropdown-item>
                       </el-dropdown-menu>
@@ -71,14 +71,21 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import applicationApi from '@/api/application'
 import { datetimeFormat } from '@/utils/time'
 import { MsgSuccess, MsgError } from '@/utils/message'
 import { t } from '@/locales'
+import { loadSharedApi } from '@/utils/dynamics-api/shared-api'
 const route = useRoute()
 const {
-  params: { id }
+  params: { id },
 } = route as any
+const apiType = computed(() => {
+  if (route.path.includes('resource-management')) {
+    return 'systemManage'
+  } else {
+    return 'workspace'
+  }
+})
 
 const emit = defineEmits(['click', 'refreshVersion'])
 const loading = ref(false)
@@ -109,22 +116,26 @@ function closeWrite(item: any) {
 function editName(val: string, item: any) {
   if (val) {
     const obj = {
-      name: val
+      name: val,
     }
-    applicationApi.putWorkFlowVersion(id as string, item.id, obj, loading).then(() => {
-      MsgSuccess(t('common.modifySuccess'))
-      item['writeStatus'] = false
-      getList()
-    })
+    loadSharedApi({ type: 'workflowVersion', systemType: apiType.value })
+      .putWorkFlowVersion(id as string, item.id, obj, loading)
+      .then(() => {
+        MsgSuccess(t('common.modifySuccess'))
+        item['writeStatus'] = false
+        getList()
+      })
   } else {
     MsgError(t('views.applicationWorkflow.tip.nameMessage'))
   }
 }
 
 function getList() {
-  applicationApi.getWorkFlowVersion(id, loading).then((res: any) => {
-    LogData.value = res.data
-  })
+  loadSharedApi({ type: 'workflowVersion', systemType: apiType.value })
+    .getWorkFlowVersion(id, loading)
+    .then((res: any) => {
+      LogData.value = res.data
+    })
 }
 
 onMounted(() => {
@@ -137,7 +148,6 @@ onMounted(() => {
   position: absolute;
   right: 0;
   top: 57px;
-  background: #ffffff;
   height: calc(100vh - 57px);
   z-index: 9;
   .list-height {

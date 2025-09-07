@@ -14,164 +14,20 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import reduce
 from typing import List, Dict
 
-from django.db import close_old_connections
-from django.db.models import QuerySet
+from django.db import close_old_connections, connection
 from django.utils import translation
 from django.utils.translation import get_language
-from django.utils.translation import gettext as _
 from langchain_core.prompts import PromptTemplate
 from rest_framework import status
-from rest_framework.exceptions import ErrorDetail, ValidationError
 
 from application.flow import tools
+from application.flow.common import Workflow
 from application.flow.i_step_node import INode, WorkFlowPostHandler, NodeResult
 from application.flow.step_node import get_node
-from common.exception.app_exception import AppApiException
 from common.handle.base_to_response import BaseToResponse
 from common.handle.impl.response.system_to_response import SystemToResponse
-from function_lib.models.function import FunctionLib
-from setting.models import Model
-from setting.models_provider import get_model_credential
 
 executor = ThreadPoolExecutor(max_workers=200)
-
-
-class Edge:
-    def __init__(self, _id: str, _type: str, sourceNodeId: str, targetNodeId: str, **keywords):
-        self.id = _id
-        self.type = _type
-        self.sourceNodeId = sourceNodeId
-        self.targetNodeId = targetNodeId
-        for keyword in keywords:
-            self.__setattr__(keyword, keywords.get(keyword))
-
-
-class Node:
-    def __init__(self, _id: str, _type: str, x: int, y: int, properties: dict, **kwargs):
-        self.id = _id
-        self.type = _type
-        self.x = x
-        self.y = y
-        self.properties = properties
-        for keyword in kwargs:
-            self.__setattr__(keyword, kwargs.get(keyword))
-
-
-end_nodes = ['ai-chat-node', 'reply-node', 'function-node', 'function-lib-node', 'application-node',
-             'image-understand-node', 'speech-to-text-node', 'text-to-speech-node', 'image-generate-node']
-
-
-class Flow:
-    def __init__(self, nodes: List[Node], edges: List[Edge]):
-        self.nodes = nodes
-        self.edges = edges
-
-    @staticmethod
-    def new_instance(flow_obj: Dict):
-        nodes = flow_obj.get('nodes')
-        edges = flow_obj.get('edges')
-        nodes = [Node(node.get('id'), node.get('type'), **node)
-                 for node in nodes]
-        edges = [Edge(edge.get('id'), edge.get('type'), **edge) for edge in edges]
-        return Flow(nodes, edges)
-
-    def get_start_node(self):
-        start_node_list = [node for node in self.nodes if node.id == 'start-node']
-        return start_node_list[0]
-
-    def get_search_node(self):
-        return [node for node in self.nodes if node.type == 'search-dataset-node']
-
-    def is_valid(self):
-        """
-        校验工作流数据
-        """
-        self.is_valid_model_params()
-        self.is_valid_start_node()
-        self.is_valid_base_node()
-        self.is_valid_work_flow()
-
-    @staticmethod
-    def is_valid_node_params(node: Node):
-        get_node(node.type)(node, None, None)
-
-    def is_valid_node(self, node: Node):
-        self.is_valid_node_params(node)
-        if node.type == 'condition-node':
-            branch_list = node.properties.get('node_data').get('branch')
-            for branch in branch_list:
-                source_anchor_id = f"{node.id}_{branch.get('id')}_right"
-                edge_list = [edge for edge in self.edges if edge.sourceAnchorId == source_anchor_id]
-                if len(edge_list) == 0:
-                    raise AppApiException(500,
-                                          _('The branch {branch} of the {node} node needs to be connected').format(
-                                              node=node.properties.get("stepName"), branch=branch.get("type")))
-
-        else:
-            edge_list = [edge for edge in self.edges if edge.sourceNodeId == node.id]
-            if len(edge_list) == 0 and not end_nodes.__contains__(node.type):
-                raise AppApiException(500, _("{node} Nodes cannot be considered as end nodes").format(
-                    node=node.properties.get("stepName")))
-
-    def get_next_nodes(self, node: Node):
-        edge_list = [edge for edge in self.edges if edge.sourceNodeId == node.id]
-        node_list = reduce(lambda x, y: [*x, *y],
-                           [[node for node in self.nodes if node.id == edge.targetNodeId] for edge in edge_list],
-                           [])
-        if len(node_list) == 0 and not end_nodes.__contains__(node.type):
-            raise AppApiException(500,
-                                  _("The next node that does not exist"))
-        return node_list
-
-    def is_valid_work_flow(self, up_node=None):
-        if up_node is None:
-            up_node = self.get_start_node()
-        self.is_valid_node(up_node)
-        next_nodes = self.get_next_nodes(up_node)
-        for next_node in next_nodes:
-            self.is_valid_work_flow(next_node)
-
-    def is_valid_start_node(self):
-        start_node_list = [node for node in self.nodes if node.id == 'start-node']
-        if len(start_node_list) == 0:
-            raise AppApiException(500, _('The starting node is required'))
-        if len(start_node_list) > 1:
-            raise AppApiException(500, _('There can only be one starting node'))
-
-    def is_valid_model_params(self):
-        node_list = [node for node in self.nodes if (node.type == 'ai-chat-node' or node.type == 'question-node')]
-        for node in node_list:
-            model = QuerySet(Model).filter(id=node.properties.get('node_data', {}).get('model_id')).first()
-            if model is None:
-                raise ValidationError(ErrorDetail(
-                    _('The node {node} model does not exist').format(node=node.properties.get("stepName"))))
-            credential = get_model_credential(model.provider, model.model_type, model.model_name)
-            model_params_setting = node.properties.get('node_data', {}).get('model_params_setting')
-            model_params_setting_form = credential.get_model_params_setting_form(
-                model.model_name)
-            if model_params_setting is None:
-                model_params_setting = model_params_setting_form.get_default_form_data()
-                node.properties.get('node_data', {})['model_params_setting'] = model_params_setting
-            if node.properties.get('status', 200) != 200:
-                raise ValidationError(
-                    ErrorDetail(_("Node {node} is unavailable").format(node.properties.get("stepName"))))
-        node_list = [node for node in self.nodes if (node.type == 'function-lib-node')]
-        for node in node_list:
-            function_lib_id = node.properties.get('node_data', {}).get('function_lib_id')
-            if function_lib_id is None:
-                raise ValidationError(ErrorDetail(
-                    _('The library ID of node {node} cannot be empty').format(node=node.properties.get("stepName"))))
-            f_lib = QuerySet(FunctionLib).filter(id=function_lib_id).first()
-            if f_lib is None:
-                raise ValidationError(ErrorDetail(_("The function library for node {node} is not available").format(
-                    node=node.properties.get("stepName"))))
-
-    def is_valid_base_node(self):
-        base_node_list = [node for node in self.nodes if node.id == 'base-node']
-        if len(base_node_list) == 0:
-            raise AppApiException(500, _('Basic information node is required'))
-        if len(base_node_list) > 1:
-            raise AppApiException(500, _('There can only be one basic information node'))
 
 
 class NodeResultFuture:
@@ -234,10 +90,11 @@ class NodeChunkManage:
 
 
 class WorkflowManage:
-    def __init__(self, flow: Flow, params, work_flow_post_handler: WorkFlowPostHandler,
+    def __init__(self, flow: Workflow, params, work_flow_post_handler: WorkFlowPostHandler,
                  base_to_response: BaseToResponse = SystemToResponse(), form_data=None, image_list=None,
                  document_list=None,
                  audio_list=None,
+                 other_list=None,
                  start_node_id=None,
                  start_node_data=None, chat_record=None, child_node=None):
         if form_data is None:
@@ -248,15 +105,19 @@ class WorkflowManage:
             document_list = []
         if audio_list is None:
             audio_list = []
+        if other_list is None:
+            other_list = []
         self.start_node_id = start_node_id
         self.start_node = None
         self.form_data = form_data
         self.image_list = image_list
         self.document_list = document_list
         self.audio_list = audio_list
+        self.other_list = other_list
         self.params = params
         self.flow = flow
         self.context = {}
+        self.chat_context = {}
         self.node_chunk_manage = NodeChunkManage(self)
         self.work_flow_post_handler = work_flow_post_handler
         self.current_node = None
@@ -271,6 +132,7 @@ class WorkflowManage:
         self.lock = threading.Lock()
         self.field_list = []
         self.global_field_list = []
+        self.chat_field_list = []
         self.init_fields()
         if start_node_id is not None:
             self.load_node(chat_record, start_node_id, start_node_data)
@@ -280,6 +142,7 @@ class WorkflowManage:
     def init_fields(self):
         field_list = []
         global_field_list = []
+        chat_field_list = []
         for node in self.flow.nodes:
             properties = node.properties
             node_name = properties.get('stepName')
@@ -294,10 +157,16 @@ class WorkflowManage:
                 if global_fields is not None:
                     for global_field in global_fields:
                         global_field_list.append({**global_field, 'node_id': node_id, 'node_name': node_name})
-        field_list.sort(key=lambda f: len(f.get('node_name')), reverse=True)
-        global_field_list.sort(key=lambda f: len(f.get('node_name')), reverse=True)
+                chat_fields = node_config.get('chatFields')
+                if chat_fields is not None:
+                    for chat_field in chat_fields:
+                        chat_field_list.append({**chat_field, 'node_id': node_id, 'node_name': node_name})
+        field_list.sort(key=lambda f: len(f.get('node_name') + f.get('value')), reverse=True)
+        global_field_list.sort(key=lambda f: len(f.get('node_name') + f.get('value')), reverse=True)
+        chat_field_list.sort(key=lambda f: len(f.get('node_name') + f.get('value')), reverse=True)
         self.field_list = field_list
         self.global_field_list = global_field_list
+        self.chat_field_list = chat_field_list
 
     def append_answer(self, content):
         self.answer += content
@@ -363,9 +232,7 @@ class WorkflowManage:
             '\n\n'.join([a.get('content') for a in answer]) for answer in
             answer_text_list)
         answer_list = reduce(lambda pre, _n: [*pre, *_n], answer_text_list, [])
-        self.work_flow_post_handler.handler(self.params['chat_id'], self.params['chat_record_id'],
-                                            answer_text,
-                                            self)
+        self.work_flow_post_handler.handler(self)
         return self.base_to_response.to_block_response(self.params['chat_id'],
                                                        self.params['chat_record_id'], answer_text, True
                                                        , message_tokens, answer_tokens,
@@ -379,6 +246,9 @@ class WorkflowManage:
         """
         self.run_chain_async(current_node, node_result_future, language)
         return tools.to_stream_response_simple(self.await_result())
+
+    def get_body(self):
+        return self.params
 
     def is_run(self, timeout=0.5):
         future_list_len = len(self.future_list)
@@ -416,9 +286,7 @@ class WorkflowManage:
                                   'message_tokens' in row and row.get('message_tokens') is not None])
             answer_tokens = sum([row.get('answer_tokens') for row in details.values() if
                                  'answer_tokens' in row and row.get('answer_tokens') is not None])
-            self.work_flow_post_handler.handler(self.params['chat_id'], self.params['chat_record_id'],
-                                                self.answer,
-                                                self)
+            self.work_flow_post_handler.handler(self)
             yield self.base_to_response.to_stream_chunk_response(self.params['chat_id'],
                                                                  self.params['chat_record_id'],
                                                                  '',
@@ -565,6 +433,8 @@ class WorkflowManage:
             return None
         finally:
             current_node.node_chunk.end()
+            # 归还链接到连接池
+            connection.close()
 
     def run_node_async(self, node):
         future = executor.submit(self.run_node, node)
@@ -586,6 +456,9 @@ class WorkflowManage:
         return current_node.node_params.get('is_result', not self._has_next_node(
             current_node, current_node_result)) if current_node.node_params is not None else False
 
+    def get_chat_info(self):
+        return self.work_flow_post_handler.chat_info
+
     def get_chunk_content(self, chunk, is_end=False):
         return 'data: ' + json.dumps(
             {'chat_id': self.params['chat_id'], 'id': self.params['chat_record_id'], 'operate': True,
@@ -595,15 +468,14 @@ class WorkflowManage:
         """
         是否有下一个可运行的节点
         """
-        if node_result is not None and node_result.is_assertion_result():
-            for edge in self.flow.edges:
+        next_edge_node_list = self.flow.get_next_edge_nodes(current_node.id) or []
+        for next_edge_node in next_edge_node_list:
+            if node_result is not None and node_result.is_assertion_result():
+                edge = next_edge_node.edge
                 if (edge.sourceNodeId == current_node.id and
                         f"{edge.sourceNodeId}_{node_result.node_variable.get('branch_id')}_right" == edge.sourceAnchorId):
                     return True
-        else:
-            for edge in self.flow.edges:
-                if edge.sourceNodeId == current_node.id:
-                    return True
+        return len(next_edge_node_list) > 0
 
     def has_next_node(self, node_result: NodeResult | None):
         """
@@ -653,26 +525,6 @@ class WorkflowManage:
             return [[]]
         return [[item.to_dict() for item in r] for r in result]
 
-    def get_next_node(self):
-        """
-        获取下一个可运行的所有节点
-        """
-        if self.current_node is None:
-            node = self.get_start_node()
-            node_instance = get_node(node.type)(node, self.params, self)
-            return node_instance
-        if self.current_result is not None and self.current_result.is_assertion_result():
-            for edge in self.flow.edges:
-                if (edge.sourceNodeId == self.current_node.id and
-                        f"{edge.sourceNodeId}_{self.current_result.node_variable.get('branch_id')}_right" == edge.sourceAnchorId):
-                    return self.get_node_cls_by_id(edge.targetNodeId)
-        else:
-            for edge in self.flow.edges:
-                if edge.sourceNodeId == self.current_node.id:
-                    return self.get_node_cls_by_id(edge.targetNodeId)
-
-        return None
-
     @staticmethod
     def dependent_node(up_node_id, node):
         if not node.node_chunk.is_end():
@@ -709,14 +561,14 @@ class WorkflowManage:
         if current_node_result.is_interrupt_exec(current_node):
             return []
         node_list = []
+        next_edge_node_list = self.flow.get_next_edge_nodes(current_node.id) or []
         if current_node_result is not None and current_node_result.is_assertion_result():
-            for edge in self.flow.edges:
-                if (edge.sourceNodeId == current_node.id and
+            for edge_node in next_edge_node_list:
+                edge = edge_node.edge
+                next_node = edge_node.node
+                if (
                         f"{edge.sourceNodeId}_{current_node_result.node_variable.get('branch_id')}_right" == edge.sourceAnchorId):
-                    next_node = [node for node in self.flow.nodes if node.id == edge.targetNodeId]
-                    if len(next_node) == 0:
-                        continue
-                    if next_node[0].properties.get('condition', "AND") == 'AND':
+                    if next_node.properties.get('condition', "AND") == 'AND':
                         if self.dependent_node_been_executed(edge.targetNodeId):
                             node_list.append(
                                 self.get_node_cls_by_id(edge.targetNodeId,
@@ -726,20 +578,19 @@ class WorkflowManage:
                             self.get_node_cls_by_id(edge.targetNodeId,
                                                     [*current_node.up_node_id_list, current_node.node.id]))
         else:
-            for edge in self.flow.edges:
-                if edge.sourceNodeId == current_node.id:
-                    next_node = [node for node in self.flow.nodes if node.id == edge.targetNodeId]
-                    if len(next_node) == 0:
-                        continue
-                    if next_node[0].properties.get('condition', "AND") == 'AND':
-                        if self.dependent_node_been_executed(edge.targetNodeId):
-                            node_list.append(
-                                self.get_node_cls_by_id(edge.targetNodeId,
-                                                        [*current_node.up_node_id_list, current_node.node.id]))
-                    else:
+            for edge_node in next_edge_node_list:
+                edge = edge_node.edge
+                next_node = edge_node.node
+                if next_node.properties.get('condition', "AND") == 'AND':
+                    if self.dependent_node_been_executed(edge.targetNodeId):
                         node_list.append(
                             self.get_node_cls_by_id(edge.targetNodeId,
                                                     [*current_node.up_node_id_list, current_node.node.id]))
+                else:
+                    node_list.append(
+                        self.get_node_cls_by_id(edge.targetNodeId,
+                                                [*current_node.up_node_id_list, current_node.node.id]))
+
         return node_list
 
     def get_reference_field(self, node_id: str, fields: List[str]):
@@ -750,12 +601,18 @@ class WorkflowManage:
         """
         if node_id == 'global':
             return INode.get_field(self.context, fields)
+        elif node_id == 'chat':
+            return INode.get_field(self.chat_context, fields)
         else:
-            return self.get_node_by_id(node_id).get_reference_field(fields)
+            node = self.get_node_by_id(node_id)
+            if node:
+                return node.get_reference_field(fields)
+            return None
 
     def get_workflow_content(self):
         context = {
             'global': self.context,
+            'chat': self.chat_context
         }
 
         for node in self.node_context:
@@ -773,6 +630,10 @@ class WorkflowManage:
             globeLabelNew = f"global.{field.get('value')}"
             globeValue = f"context.get('global').get('{field.get('value', '')}','')"
             prompt = prompt.replace(globeLabel, globeValue).replace(globeLabelNew, globeValue)
+        for field in self.chat_field_list:
+            chatLabel = f"chat.{field.get('value')}"
+            chatValue = f"context.get('chat').get('{field.get('value', '')}','')"
+            prompt = prompt.replace(chatLabel, chatValue)
         return prompt
 
     def generate_prompt(self, prompt: str):

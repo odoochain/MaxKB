@@ -1,34 +1,38 @@
-import notFound from './404'
 import application from './application'
+import role from './role'
+import workspace from './workspace'
 import applicationOverview from './application-overview'
-import dataset from './dataset'
+import knowledge from './knowledge'
 import system from './system'
-import functionLib from './function-lib'
-import user from './user'
-import team from './team'
-import template from './template'
+import tool from './tool'
+import userManage from './user-manage'
+import model from './model'
 import document from './document'
 import paragraph from './paragraph'
 import problem from './problem'
-import log from './log'
+import chatLog from './chat-log'
+import chatUser from './chat-user'
 import applicationWorkflow from './application-workflow'
 import login from './login'
 import operateLog from './operate-log'
+import shared from './shared'
 export default {
-  notFound,
   application,
   applicationOverview,
   system,
-  functionLib,
-  user,
-  team,
-  template,
-  dataset,
+  tool,
+  userManage,
+  model,
+  knowledge,
   applicationWorkflow,
   document,
   paragraph,
   problem,
-  log,
+  chatLog,
   login,
-  operateLog
+  operateLog,
+  role,
+  workspace,
+  chatUser,
+  shared
 }

@@ -1,26 +1,26 @@
 # coding=utf-8
 import logging
+import traceback
 
 from charset_normalizer import detect
 
 from common.handle.base_parse_table_handle import BaseParseTableHandle
+from common.utils.logger import maxkb_logger
 
-max_kb = logging.getLogger("max_kb")
 
-
-class CsvSplitHandle(BaseParseTableHandle):
+class CsvParseTableHandle(BaseParseTableHandle):
     def support(self, file, get_buffer):
         file_name: str = file.name.lower()
         if file_name.endswith(".csv"):
             return True
         return False
 
-    def handle(self, file, get_buffer,save_image):
+    def handle(self, file, get_buffer, save_image):
         buffer = get_buffer(file)
         try:
             content = buffer.decode(detect(buffer)['encoding'])
         except BaseException as e:
-            max_kb.error(f'csv split handle error: {e}')
+            maxkb_logger.error(f"Error processing CSV file {file.name}: {e}, {traceback.format_exc()}")
             return [{'name': file.name, 'paragraphs': []}]
 
         csv_model = content.split('\n')
@@ -40,5 +40,5 @@ class CsvSplitHandle(BaseParseTableHandle):
         try:
             return buffer.decode(detect(buffer)['encoding'])
         except BaseException as e:
-            max_kb.error(f'csv split handle error: {e}')
+            maxkb_logger.error(f'csv split handle error: {e}')
             return f'error: {e}'

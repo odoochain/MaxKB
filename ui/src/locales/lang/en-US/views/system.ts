@@ -1,5 +1,6 @@
 export default {
   title: 'System',
+  subTitle: 'Syetem Settings',
   test: 'Test Connection',
   testSuccess: 'Successful',
   testFailed: 'Test connection failed',
@@ -18,7 +19,7 @@ export default {
       ldap_filterPlaceholder: 'Please enter user filter',
       ldap_mapping: 'LDAP Attribute Mapping',
       ldap_mappingPlaceholder: 'Please enter LDAP attribute mapping',
-      enableAuthentication: 'Enable LDAP Authentication'
+      enableAuthentication: 'Enable LDAP Authentication',
     },
     cas: {
       title: 'CAS',
@@ -28,7 +29,7 @@ export default {
       validateUrlPlaceholder: 'Please enter validation address',
       redirectUrl: 'Callback Address',
       redirectUrlPlaceholder: 'Please enter callback address',
-      enableAuthentication: 'Enable CAS Authentication'
+      enableAuthentication: 'Enable CAS Authentication',
     },
     oidc: {
       title: 'OIDC',
@@ -47,7 +48,7 @@ export default {
       logoutEndpointPlaceholder: 'Please enter logout endpoint',
       redirectUrl: 'Redirect URL',
       redirectUrlPlaceholder: 'Please enter redirect URL',
-      enableAuthentication: 'Enable OIDC Authentication'
+      enableAuthentication: 'Enable OIDC Authentication',
     },
 
     oauth2: {
@@ -68,7 +69,7 @@ export default {
       redirectUrlPlaceholder: 'Please enter redirect URL',
       filedMapping: 'Field Mapping',
       filedMappingPlaceholder: 'Please enter field mapping',
-      enableAuthentication: 'Enable OAuth2 Authentication'
+      enableAuthentication: 'Enable OAuth2 Authentication',
     },
     scanTheQRCode: {
       title: 'Scan the QR code',
@@ -90,50 +91,8 @@ export default {
       larkQrCode: 'Lark Scan Code Login',
       dingtalkQrCode: 'DingTalk Scan Code Login',
       setting: ' Setting',
-      access: 'Access'
-    }
-  },
-  theme: {
-    title: 'Appearance Settings',
-    platformDisplayTheme: 'Platform Display Theme',
-    customTheme: 'Custom Theme',
-    platformLoginSettings: 'Platform Login Settings',
-    custom: 'Custom',
-    pagePreview: 'Page Preview',
-    default: 'Default',
-    restoreDefaults: 'Restore Defaults',
-    orange: 'Orange',
-    green: 'Green',
-    purple: 'Purple',
-    red: 'Red',
-    loginBackground: 'Login Background Image',
-    loginLogo: 'Login Logo',
-    websiteLogo: 'Website Logo',
-    replacePicture: 'Replace Image',
-    websiteLogoTip:
-      'Logo displayed at the top of the website. Recommended size: 48x48. Supports JPG, PNG, GIF. Maximum size: 10MB',
-    loginLogoTip:
-      'Logo on the right side of the login page. Recommended size: 204x52. Supports JPG, PNG, GIF. Maximum size: 10MB',
-    loginBackgroundTip:
-      'Left-side background image. Vector graphics recommended size: 576x900; Bitmap recommended size: 1152x1800. Supports JPG, PNG, GIF. Maximum size: 10MB',
-    websiteName: 'Website Name',
-    websiteNamePlaceholder: 'Please enter the website name',
-    websiteNameTip: 'The platform name displayed in the web page tab',
-    websiteSlogan: 'Welcome Slogan',
-    websiteSloganPlaceholder: 'Please enter the welcome slogan',
-    websiteSloganTip: 'The welcome slogan below the product logo',
-    defaultSlogan: 'Ready-to-use, flexible RAG Chatbot',
-    defaultTip: 'The default is the MaxKB platform interface, supports custom settings',
-    logoDefaultTip: 'The default is the MaxKB login interface, supports custom settings',
-    platformSetting: 'Platform Settings',
-    showUserManual: 'Show User Manual',
-    showForum: 'Show Forum Support',
-    showProject: 'Show Project Address',
-    urlPlaceholder: 'Please enter the URL address',
-    abandonUpdate: 'Abandon Update',
-    saveAndApply: 'Save and Apply',
-    fileMessageError: 'File size exceeds 10MB',
-    saveSuccess: 'Appearance settings successfully applied'
+      access: 'Access',
+    },
   },
   email: {
     title: 'Email Settings',
@@ -143,11 +102,32 @@ export default {
     smtpPortPlaceholder: 'Please enter SMTP port',
     smtpUser: 'SMTP User',
     smtpUserPlaceholder: 'Please enter SMTP user',
-    sendEmail: 'Sender\'s Email',
-    sendEmailPlaceholder: 'Please enter the sender\'s email',
+    sendEmail: "Sender's Email",
+    sendEmailPlaceholder: "Please enter the sender's email",
     smtpPassword: 'SMTP Password',
     smtpPasswordPlaceholder: 'Please enter SMTP password',
     enableSSL: 'Enable SSL (if the SMTP port is 465, you usually need to enable SSL)',
-    enableTLS: 'Enable TLS (if the SMTP port is 587, you usually need to enable TLS)'
-  }
+    enableTLS: 'Enable TLS (if the SMTP port is 587, you usually need to enable TLS)',
+  },
+
+  resourceAuthorization: {
+    title: 'Resource Authorization',
+    member: 'Member',
+    permissionSetting: 'Permission Setting',
+    setting: {
+      management: 'management',
+      managementDesc: 'Can delete or modify this resource',
+      check: 'check',
+      checkDesc: 'Can only view the resource',
+      role: 'User Role',
+      roleDesc: 'Authorize users based on their roles to access this resource',
+      notAuthorized: 'Not Authorized',
+      configure: 'Configure Permission',
+    },
+  },
+  resource_management: {
+    label: 'Resource Management',
+    type: 'Type',
+    management: 'management',
+  },
 }

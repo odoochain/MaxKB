@@ -2,33 +2,34 @@ import { t } from '@/locales'
 
 export const themeList = [
   {
-    label: t('views.system.theme.default'),
+    label: t('theme.default'),
     value: '#3370FF',
-    loginBackground: 'default'
+    loginBackground: 'default',
   },
   {
-    label: t('views.system.theme.orange'),
+    label: t('theme.orange'),
     value: '#FF8800',
-    loginBackground: 'orange'
+    loginBackground: 'orange',
   },
   {
-    label: t('views.system.theme.green'),
+    label: t('theme.green'),
     value: '#00B69D',
-    loginBackground: 'green'
+    loginBackground: 'green',
   },
   {
-    label: t('views.system.theme.purple'),
+    label: t('theme.purple'),
     value: '#7F3BF5',
-    loginBackground: 'purple'
+    loginBackground: 'purple',
   },
   {
-    label: t('views.system.theme.red'),
+    label: t('theme.red'),
     value: '#F01D94',
-    loginBackground: 'red'
-  }
+    loginBackground: 'red',
+  },
 ]
 
 export function getThemeImg(val: string) {
+  if (!val) return 'default'
   return themeList.filter((v) => v.value === val)?.[0]?.loginBackground || 'default'
 }
 
@@ -37,7 +38,7 @@ export const defaultSetting = {
   loginLogo: '',
   loginImage: '',
   title: 'MaxKB',
-  slogan: t('views.system.theme.defaultSlogan')
+  slogan: t('theme.defaultSlogan'),
 }
 
 export const defaultPlatformSetting = {
@@ -46,7 +47,7 @@ export const defaultPlatformSetting = {
   showForum: true,
   forumUrl: t('layout.forumUrl'),
   showProject: true,
-  projectUrl: 'https://github.com/1Panel-dev/MaxKB'
+  projectUrl: 'https://github.com/1Panel-dev/MaxKB',
 }
 
 export function hexToRgba(hex?: string, alpha?: number) {

@@ -12,16 +12,17 @@ from rest_framework import serializers
 
 from application.flow.i_step_node import INode, NodeResult
 from common.exception.app_exception import AppApiException
-from common.util.field_message import ErrMessage
+
 from django.utils.translation import gettext_lazy as _
 
 
 class ReplyNodeParamsSerializer(serializers.Serializer):
-    reply_type = serializers.CharField(required=True, error_messages=ErrMessage.char(_("Response Type")))
-    fields = serializers.ListField(required=False, error_messages=ErrMessage.list(_("Reference Field")))
+    reply_type = serializers.CharField(required=True, label=_("Response Type"))
+    fields = serializers.ListField(required=False, label=_("Reference Field"))
     content = serializers.CharField(required=False, allow_blank=True, allow_null=True,
-                                    error_messages=ErrMessage.char(_("Direct answer content")))
-    is_result = serializers.BooleanField(required=False, error_messages=ErrMessage.boolean(_('Whether to return content')))
+                                    label=_("Direct answer content"))
+    is_result = serializers.BooleanField(required=False,
+                                         label=_('Whether to return content'))
 
     def is_valid(self, *, raise_exception=False):
         super().is_valid(raise_exception=True)

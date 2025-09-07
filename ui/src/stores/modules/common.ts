@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { DeviceType, ValidType } from '@/enums/common'
 import type { Ref } from 'vue'
-import userApi from '@/api/user'
+import userApi from '@/api/system/user-manage'
 
 export interface commonTypes {
   breadcrumb: any
@@ -10,8 +10,7 @@ export interface commonTypes {
   device: string
 }
 
-const useCommonStore = defineStore({
-  id: 'common',
+const useCommonStore = defineStore('common',{
   state: (): commonTypes => ({
     breadcrumb: null,
     // 搜索和分页缓存

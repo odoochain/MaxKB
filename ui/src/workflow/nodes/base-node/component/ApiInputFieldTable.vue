@@ -1,22 +1,32 @@
 <template>
   <div class="flex-between mb-16">
-    <h5 class="lighter">{{ $t('views.template.templateForm.title.apiParamPassing') }}</h5>
+    <h5 class="lighter">{{ $t('views.model.modelForm.title.apiParamPassing') }}</h5>
     <el-button link type="primary" @click="openAddDialog()">
-      <el-icon class="mr-4">
-        <Plus />
-      </el-icon>
+      <AppIcon iconName="app-add-outlined" class="mr-4"></AppIcon>
       {{ $t('common.add') }}
     </el-button>
   </div>
   <el-table
     v-if="props.nodeModel.properties.api_input_field_list?.length > 0"
     :data="props.nodeModel.properties.api_input_field_list"
-    class="mb-16"
+    class="mb-16 api-input-field-table"
     ref="tableRef"
-    row-key="field"
+    row-key="variable"
   >
-    <el-table-column prop="variable" :label="$t('dynamicsForm.paramForm.field.label')" />
-    <el-table-column prop="default_value" :label="$t('dynamicsForm.default.label')" />
+    <el-table-column prop="variable" :label="$t('dynamicsForm.paramForm.field.label')">
+      <template #default="{ row }">
+        <span class="ellipsis-1" :title="row.variable">
+          {{ row.variable }}
+        </span>
+      </template>
+    </el-table-column>
+    <el-table-column prop="default_value" :label="$t('dynamicsForm.default.label')">
+      <template #default="{ row }">
+        <span class="ellipsis-1" :title="row.default_value">
+          {{ row.default_value }}
+        </span>
+      </template>
+    </el-table-column>
     <el-table-column :label="$t('common.required')">
       <template #default="{ row }">
         <div @click.stop>
@@ -29,15 +39,13 @@
         <span class="mr-4">
           <el-tooltip effect="dark" :content="$t('common.modify')" placement="top">
             <el-button type="primary" text @click.stop="openAddDialog(row, $index)">
-              <el-icon><EditPen /></el-icon>
+              <AppIcon iconName="app-edit"></AppIcon>
             </el-button>
           </el-tooltip>
         </span>
         <el-tooltip effect="dark" :content="$t('common.delete')" placement="top">
           <el-button type="primary" text @click="deleteField($index)">
-            <el-icon>
-              <Delete />
-            </el-icon>
+            <AppIcon iconName="app-delete"></AppIcon>
           </el-button>
         </el-tooltip>
       </template>
@@ -49,7 +57,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { set } from 'lodash'
+import { set, cloneDeep } from 'lodash'
 import Sortable from 'sortablejs'
 import ApiFieldFormDialog from './ApiFieldFormDialog.vue'
 import { MsgError } from '@/utils/message'
@@ -82,7 +90,7 @@ function refreshFieldList(data: any) {
     }
   }
   // 查看另一个list又没有重复的
-  let arr = props.nodeModel.properties.user_input_field_list
+  const arr = props.nodeModel.properties.user_input_field_list
   for (let i = 0; i < arr.length; i++) {
     if (arr[i].field === data.variable) {
       MsgError(t('views.applicationWorkflow.tip.paramErrorMessage') + data.variable)
@@ -106,7 +114,7 @@ function onDragHandle() {
 
   // 获取表格的 tbody DOM 元素
   const wrapper = tableRef.value.$el as HTMLElement
-  const tbody = wrapper.querySelector('.el-table__body-wrapper tbody')
+  const tbody = wrapper.querySelector('.api-input-field-table .el-table__body-wrapper tbody')
   if (!tbody) return
   // 初始化 Sortable
   Sortable.create(tbody as HTMLElement, {
@@ -115,12 +123,12 @@ function onDragHandle() {
     onEnd: (evt) => {
       if (evt.oldIndex === undefined || evt.newIndex === undefined) return
       // 更新数据顺序
-      const items = [...inputFieldList.value]
+      const items = cloneDeep([...inputFieldList.value])
       const [movedItem] = items.splice(evt.oldIndex, 1)
       items.splice(evt.newIndex, 0, movedItem)
       inputFieldList.value = items
       props.nodeModel.graphModel.eventCenter.emit('refreshFieldList')
-    }
+    },
   })
 }
 
@@ -139,6 +147,7 @@ onMounted(() => {
     inputFieldList.value.push(...props.nodeModel.properties.api_input_field_list)
   }
   set(props.nodeModel.properties, 'api_input_field_list', inputFieldList)
+  onDragHandle()
 })
 </script>
 

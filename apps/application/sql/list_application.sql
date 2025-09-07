@@ -1,8 +1,22 @@
-SELECT *,to_json(dataset_setting) as dataset_setting,to_json(model_setting) as model_setting,to_json(work_flow) as work_flow FROM ( SELECT * FROM application  ${application_custom_sql} UNION
-	SELECT
-		*
-	FROM
-		application
-	WHERE
-		application."id" IN ( SELECT team_member_permission.target FROM team_member team_member LEFT JOIN team_member_permission team_member_permission ON team_member_permission.member_id = team_member."id" ${team_member_permission_custom_sql})
-	) temp_application ${default_sql}
+select *
+from (select application."id"::text, application."name",
+             application."desc",
+             application."is_publish",
+             application."type",
+             'application'      as "resource_type",
+             application."workspace_id",
+             application."folder_id",
+             application."user_id",
+             "user"."nick_name" as "nick_name",
+             application."create_time",
+             application."update_time",
+             application."publish_time",
+             application.icon
+      from application
+               left join "user" on user_id = "user".id
+          ${application_custom_sql}
+      UNION
+      select application_folder."id", application_folder."name", application_folder."desc", true as "is_publish", 'folder' as "type", 'folder' as "resource_type", application_folder."workspace_id", application_folder."parent_id" as "folder_id", application_folder."user_id", "user"."nick_name" as "nick_name", application_folder."create_time", application_folder."update_time", null as "publish_time", null as "icon"
+      from application_folder left join "user"
+      on user_id = "user".id ${folder_query_set}) temp
+    ${application_query_set}

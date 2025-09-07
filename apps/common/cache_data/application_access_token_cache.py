@@ -9,14 +9,13 @@
 from django.core.cache import cache
 from django.db.models import QuerySet
 
-from application.models.api_key_model import ApplicationAccessToken
-from common.constants.cache_code_constants import CacheCodeConstants
-from common.util.cache_util import get_cache
+from application.models import ApplicationAccessToken
+from common.utils.cache_util import get_cache
 
 
 @get_cache(cache_key=lambda access_token, use_get_data: access_token,
            use_get_data=lambda access_token, use_get_data: use_get_data,
-           version=CacheCodeConstants.APPLICATION_ACCESS_TOKEN_CACHE.value)
+           version='APPLICATION_ACCESS_TOKEN_CACHE')
 def get_application_access_token(access_token, use_get_data):
     application_access_token = QuerySet(ApplicationAccessToken).filter(access_token=access_token).first()
     if application_access_token is None:
@@ -28,4 +27,4 @@ def get_application_access_token(access_token, use_get_data):
 
 
 def del_application_access_token(access_token):
-    cache.delete(access_token, version=CacheCodeConstants.APPLICATION_ACCESS_TOKEN_CACHE.value)
+    cache.delete(access_token, version='APPLICATION_ACCESS_TOKEN_CACHE')

@@ -1,37 +1,44 @@
 # coding=utf-8
-
-import logging
 from datetime import timedelta
 
-from apscheduler.schedulers.background import BackgroundScheduler
 from django.db.models import Q
 from django.utils import timezone
-from django_apscheduler.jobstores import DjangoJobStore
 
-from common.lock.impl.file_lock import FileLock
-from dataset.models import File
-
-scheduler = BackgroundScheduler()
-scheduler.add_jobstore(DjangoJobStore(), "default")
-lock = FileLock()
+from common.job.scheduler import scheduler
+from common.utils.lock import lock, RedisLock
+from common.utils.logger import maxkb_logger
+from knowledge.models import File, FileSourceType
 
 
 def clean_debug_file():
+    clean_debug_file_lock()
+
+
+@lock(lock_key='clean_debug_file_execute', timeout=30)
+def clean_debug_file_lock():
     from django.utils.translation import gettext_lazy as _
-    logging.getLogger("max_kb").info(_('start clean debug file'))
+    maxkb_logger.debug(_('start clean debug file'))
+    minutes_30_ago = timezone.now() - timedelta(minutes=30)
     two_hours_ago = timezone.now() - timedelta(hours=2)
+    one_days_ago = timezone.now() - timedelta(hours=24)
     # 删除对应的文件
-    File.objects.filter(Q(create_time__lt=two_hours_ago) & Q(meta__debug=True)).delete()
-    logging.getLogger("max_kb").info(_('end clean debug file'))
+    File.objects.filter(
+        Q(create_time__lt=one_days_ago, source_type=FileSourceType.TEMPORARY_1_DAY.value) |
+        Q(create_time__lt=two_hours_ago, source_type=FileSourceType.TEMPORARY_120_MINUTE.value) |
+        Q(create_time__lt=minutes_30_ago, source_type=FileSourceType.TEMPORARY_30_MINUTE.value)
+    ).delete()
+    maxkb_logger.debug(_('end clean debug file'))
 
 
 def run():
-    if lock.try_lock('clean_debug_file', 30 * 30):
+    rlock = RedisLock()
+    if rlock.try_lock('clean_debug_file', 30 * 30):
         try:
-            scheduler.start()
+            maxkb_logger.debug('get lock clean_debug_file')
+
             clean_debug_file_job = scheduler.get_job(job_id='clean_debug_file')
             if clean_debug_file_job is not None:
                 clean_debug_file_job.remove()
-            scheduler.add_job(clean_debug_file, 'cron', hour='2', minute='0', second='0', id='clean_debug_file')
+            scheduler.add_job(clean_debug_file, 'cron', hour='*', minute='*/30', second='0', id='clean_debug_file')
         finally:
-            lock.un_lock('clean_debug_file')
+            rlock.un_lock('clean_debug_file')

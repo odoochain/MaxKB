@@ -25,7 +25,7 @@ import { t } from '@/locales'
 const props = defineProps<{
   nodeModel: any
   modelValue: Array<any>
-  global?: Boolean
+  global?: boolean
 }>()
 const emit = defineEmits(['update:modelValue'])
 const data = computed({
@@ -34,7 +34,7 @@ const data = computed({
   },
   get: () => {
     return props.modelValue
-  }
+  },
 })
 const options = ref<Array<any>>([])
 
@@ -51,8 +51,14 @@ const wheel = (e: any) => {
 function visibleChange(bool: boolean) {
   if (bool) {
     options.value = props.global
-      ? props.nodeModel.get_up_node_field_list(false, true).filter((v: any) => v.value === 'global')
-      : props.nodeModel.get_up_node_field_list(false, true)
+      ? props.nodeModel
+          .get_up_node_field_list(false, true)
+          .filter(
+            (v: any) => ['global', 'chat'].includes(v.value) && v.children && v.children.length > 0,
+          )
+      : props.nodeModel
+          .get_up_node_field_list(false, true)
+          .filter((v: any) => v.children && v.children.length > 0)
   }
 }
 
@@ -80,7 +86,11 @@ const validate = () => {
 defineExpose({ validate })
 onMounted(() => {
   options.value = props.global
-    ? props.nodeModel.get_up_node_field_list(false, true).filter((v: any) => v.value === 'global')
+    ? props.nodeModel
+        .get_up_node_field_list(false, true)
+        .filter(
+          (v: any) => ['global', 'chat'].includes(v.value) && v.children && v.children.length > 0,
+        )
     : props.nodeModel.get_up_node_field_list(false, true)
 })
 </script>

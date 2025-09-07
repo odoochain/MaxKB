@@ -17,9 +17,8 @@ from langchain_core.messages import BaseMessage
 
 from application.flow.i_step_node import NodeResult, INode
 from application.flow.step_node.question_node.i_question_node import IQuestionNode
-from setting.models import Model
-from setting.models_provider import get_model_credential
-from setting.models_provider.tools import get_model_instance_by_model_user_id
+from models_provider.models import Model
+from models_provider.tools import get_model_instance_by_model_workspace_id, get_model_credential
 
 
 def _write_context(node_variable: Dict, workflow_variable: Dict, node: INode, workflow, answer: str):
@@ -80,15 +79,17 @@ class BaseQuestionNode(IQuestionNode):
         self.context['answer'] = details.get('answer')
         self.context['message_tokens'] = details.get('message_tokens')
         self.context['answer_tokens'] = details.get('answer_tokens')
-        self.answer_text = details.get('answer')
+        if self.node_params.get('is_result', False):
+            self.answer_text = details.get('answer')
 
     def execute(self, model_id, system, prompt, dialogue_number, history_chat_record, stream, chat_id, chat_record_id,
                 model_params_setting=None,
                 **kwargs) -> NodeResult:
         if model_params_setting is None:
             model_params_setting = get_default_model_params_setting(model_id)
-        chat_model = get_model_instance_by_model_user_id(model_id, self.flow_params_serializer.data.get('user_id'),
-                                                         **model_params_setting)
+        workspace_id = self.workflow_manage.get_body().get('workspace_id')
+        chat_model = get_model_instance_by_model_workspace_id(model_id, workspace_id,
+                                                              **model_params_setting)
         history_message = self.get_history_message(history_chat_record, dialogue_number)
         self.context['history_message'] = history_message
         question = self.generate_prompt_question(prompt)

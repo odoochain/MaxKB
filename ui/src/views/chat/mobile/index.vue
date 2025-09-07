@@ -1,37 +1,61 @@
 <template>
   <div
-    class="chat-mobile layout-bg"
-    v-loading="loading"
+    class="chat-mobile layout-bg chat-background"
+    :class="classObj"
     :style="{
       '--el-color-primary': applicationDetail?.custom_theme?.theme_color,
-      '--el-color-primary-light-9': hexToRgba(applicationDetail?.custom_theme?.theme_color, 0.1)
+      '--el-color-primary-light-9': hexToRgba(
+        applicationDetail?.custom_theme?.theme_color || '#3370FF',
+        0.1,
+      ),
+      '--el-color-primary-light-6': hexToRgba(
+        applicationDetail?.custom_theme?.theme_color || '#3370FF',
+        0.4,
+      ),
+      '--el-color-primary-light-06': hexToRgba(
+        applicationDetail?.custom_theme?.theme_color || '#3370FF',
+        0.04,
+      ),
+      backgroundImage: `url(${applicationDetail?.chat_background})`,
     }"
   >
-    <div class="chat-embed__header" :style="customStyle">
-      <div class="flex align-center">
-        <div class="mr-12 ml-24 flex">
-          <AppAvatar
-            v-if="isAppIcon(applicationDetail?.icon)"
-            shape="square"
-            :size="32"
-            style="background: none"
-          >
-            <img :src="applicationDetail?.icon" alt="" />
-          </AppAvatar>
-          <AppAvatar
-            v-else-if="applicationDetail?.name"
-            :name="applicationDetail?.name"
-            pinyinColor
-            shape="square"
-            :size="32"
+    <div class="chat-mobile__header" :style="customStyle">
+      <div class="flex-between">
+        <div class="flex align-center">
+          <AppIcon
+            iconName="app-mobile-open-history"
+            style="font-size: 20px"
+            class="ml-16 cursor"
+            @click.prevent.stop="show = true"
           />
-        </div>
+          <div class="mr-12 ml-16 flex">
+            <el-avatar
+              v-if="isAppIcon(applicationDetail?.icon)"
+              shape="square"
+              :size="32"
+              style="background: none"
+            >
+              <img :src="applicationDetail?.icon" alt="" />
+            </el-avatar>
+            <LogoIcon v-else height="32px" />
+          </div>
 
-        <h4>{{ applicationDetail?.name }}</h4>
+          <h4 class="ellipsis" style="max-width: 270px" :title="applicationDetail?.name">
+            {{ applicationDetail?.name }}
+          </h4>
+        </div>
+        <el-button
+          text
+          @click="newChat"
+          class="mr-16"
+          :style="{ color: applicationDetail?.custom_theme?.header_font_color }"
+        >
+          <AppIcon iconName="app-create-chat" style="font-size: 20px"></AppIcon>
+        </el-button>
       </div>
     </div>
     <div>
-      <div class="chat-embed__main">
+      <div class="chat-mobile__main">
         <AiChat
           ref="AiChatRef"
           v-model:applicationDetails="applicationDetail"
@@ -44,97 +68,33 @@
           @scroll="handleScroll"
           class="AiChat-embed"
         >
-          <template #operateBefore>
-            <div>
-              <el-button type="primary" link class="new-chat-button mb-8" @click="newChat">
-                <el-icon><Plus /></el-icon><span class="ml-4">{{ $t('chat.createChat') }}</span>
-              </el-button>
-            </div>
-          </template>
         </AiChat>
       </div>
-
-      <!-- 历史记录弹出层 -->
-      <div
-        v-if="applicationDetail.show_history || !user.isEnterprise()"
-        @click.prevent.stop="show = !show"
-        class="chat-popover-button cursor color-secondary"
-      >
-        <AppIcon
-          iconName="app-history-outlined"
-          :style="{
-            color: applicationDetail?.custom_theme?.header_font_color
-          }"
-        ></AppIcon>
-      </div>
-
-      <el-collapse-transition>
-        <div v-show="show" class="chat-popover w-full" v-click-outside="clickoutside">
-          <div class="border-b p-16-24">
-            <span>{{ $t('chat.history') }}</span>
-          </div>
-
-          <el-scrollbar max-height="300">
-            <div class="p-8">
-              <common-list
-                :style="{ '--el-color-primary': applicationDetail?.custom_theme?.theme_color }"
-                :data="chatLogData"
-                v-loading="left_loading"
-                :defaultActive="currentChatId"
-                @click="clickListHandle"
-                @mouseenter="mouseenter"
-                @mouseleave="mouseId = ''"
-              >
-                <template #default="{ row }">
-                  <div class="flex-between">
-                    <ReadWrite
-                      @change="editName($event, row)"
-                      :data="row.abstract"
-                      trigger="manual"
-                      :write="row.writeStatus"
-                      @close="closeWrite(row)"
-                      :maxlength="1024"
-                    />
-                    <div
-                      @click.stop
-                      v-if="mouseId === row.id && row.id !== 'new' && !row.writeStatus"
-                      class="flex"
-                    >
-                      <el-button style="padding: 0" link @click.stop="openWrite(row)">
-                        <el-icon><EditPen /></el-icon>
-                      </el-button>
-                      <el-button style="padding: 0" link @click.stop="deleteLog(row)">
-                        <el-icon><Delete /></el-icon>
-                      </el-button>
-                    </div>
-                  </div>
-                </template>
-                <template #empty>
-                  <div class="text-center mt-24">
-                    <el-text type="info">{{ $t('chat.noHistory') }}</el-text>
-                  </div>
-                </template>
-              </common-list>
-            </div>
-            <div v-if="chatLogData.length" class="gradient-divider lighter mt-8">
-              <span>{{ $t('chat.only20history') }}</span>
-            </div>
-          </el-scrollbar>
-        </div>
-      </el-collapse-transition>
-      <div class="chat-popover-mask" v-show="show"></div>
     </div>
+    <ChatHistoryDrawer
+      v-model:show="show"
+      :application-detail="applicationDetail"
+      :chat-log-data="chatLogData"
+      :left-loading="left_loading"
+      :currentChatId="currentChatId"
+      @new-chat="newChat"
+      @clickLog="clickListHandle"
+      @delete-log="deleteLog"
+      @refreshFieldTitle="refreshFieldTitle"
+      @clear-chat="clearChat"
+    />
   </div>
 </template>
 <script setup lang="ts">
 import { ref, onMounted, reactive, nextTick, computed } from 'vue'
-import { useRoute } from 'vue-router'
-import { isAppIcon } from '@/utils/application'
+import { isAppIcon } from '@/utils/common'
 import { hexToRgba } from '@/utils/theme'
-import { MsgError } from '@/utils/message'
 import useStore from '@/stores'
 import { t } from '@/locales'
-const { user, log } = useStore()
+import ChatHistoryDrawer from './component/ChatHistoryDrawer.vue'
+import chatAPI from '@/api/chat/chat'
+
+const { common } = useStore()
 
 const AiChatRef = ref()
 const loading = ref(false)
@@ -149,67 +109,51 @@ const applicationDetail = computed({
   get: () => {
     return props.application_profile
   },
-  set: (v) => {}
+  set: (v) => {},
 })
 const paginationConfig = reactive({
   current_page: 1,
   page_size: 20,
-  total: 0
+  total: 0,
 })
 
 const currentRecordList = ref<any>([])
 const currentChatId = ref('new') // 当前历史记录Id 默认为'new'
 
-const mouseId = ref('')
-
 const customStyle = computed(() => {
   return {
     background: applicationDetail.value?.custom_theme?.theme_color,
-    color: applicationDetail.value?.custom_theme?.header_font_color
+    color: applicationDetail.value?.custom_theme?.header_font_color,
   }
 })
 
-function editName(val: string, item: any) {
-  if (val) {
-    const obj = {
-      abstract: val
-    }
-
-    log.asyncPutChatClientLog(applicationDetail.value.id, item.id, obj, loading).then(() => {
-      const find = chatLogData.value.find((item: any) => item.id == item.id)
-      if (find) {
-        find.abstract = val
-      }
-      item['writeStatus'] = false
-    })
-  } else {
-    MsgError(t('views.applicationWorkflow.tip.nameMessage'))
+const classObj = computed(() => {
+  return {
+    mobile: common.isMobile(),
   }
+})
+
+function clearChat() {
+  chatAPI.clearChat(left_loading).then(() => {
+    currentChatId.value = 'new'
+    paginationConfig.current_page = 1
+    paginationConfig.total = 0
+    currentRecordList.value = []
+    getChatLog()
+  })
 }
 
-function openWrite(item: any) {
-  item['writeStatus'] = true
-}
-
-function closeWrite(item: any) {
-  item['writeStatus'] = false
-}
-
-function mouseenter(row: any) {
-  mouseId.value = row.id
-}
 function deleteLog(row: any) {
-  log.asyncDelChatClientLog(applicationDetail.value.id, row.id, left_loading).then(() => {
+  chatAPI.deleteChat(row.id).then(() => {
     if (currentChatId.value === row.id) {
       currentChatId.value = 'new'
       paginationConfig.current_page = 1
       paginationConfig.total = 0
       currentRecordList.value = []
     }
-    getChatLog(applicationDetail.value.id)
+    chatLogData.value = chatLogData.value.filter((item) => item.id !== row.id)
   })
 }
-
 function handleScroll(event: any) {
   if (
     currentChatId.value !== 'new' &&
@@ -224,42 +168,44 @@ function handleScroll(event: any) {
   }
 }
 
-function clickoutside() {
-  show.value = false
+const newObj = {
+  id: 'new',
+  abstract: t('chat.createChat'),
 }
-
 function newChat() {
   paginationConfig.current_page = 1
   currentRecordList.value = []
+  if (!chatLogData.value.some((v) => v.id === 'new')) {
+    chatLogData.value.unshift(newObj)
+  }
   currentChatId.value = 'new'
+  show.value = false
 }
 
-function getChatLog(id: string) {
+function getChatLog(refresh?: boolean) {
   const page = {
     current_page: 1,
-    page_size: 20
+    page_size: 20,
   }
 
-  log.asyncGetChatLogClient(id, page, left_loading).then((res: any) => {
+  chatAPI.pageChat(page.current_page, page.page_size, left_loading).then((res: any) => {
     chatLogData.value = res.data.records
-    paginationConfig.current_page = 1
-    paginationConfig.total = 0
-    currentRecordList.value = []
-    currentChatId.value = chatLogData.value?.[0]?.id || 'new'
-    if (currentChatId.value !== 'new') {
-      getChatRecord()
+    if (!refresh) {
+      paginationConfig.current_page = 1
+      paginationConfig.total = 0
+      currentRecordList.value = []
+      currentChatId.value = 'new'
     }
   })
 }
 
 function getChatRecord() {
-  return log
-    .asyncChatRecordLog(
-      applicationDetail.value.id,
+  return chatAPI
+    .pageChatRecord(
       currentChatId.value,
-      paginationConfig,
+      paginationConfig.current_page,
+      paginationConfig.page_size,
       loading,
-      false
     )
     .then((res: any) => {
       paginationConfig.total = res.data.total
@@ -269,7 +215,7 @@ function getChatRecord() {
         v['record_id'] = v.id
       })
       currentRecordList.value = [...list, ...currentRecordList.value].sort((a, b) =>
-        a.create_time.localeCompare(b.create_time)
+        a.create_time.localeCompare(b.create_time),
       )
       if (paginationConfig.current_page === 1) {
         nextTick(() => {
@@ -292,24 +238,29 @@ const clickListHandle = (item: any) => {
   }
 }
 
+function refreshFieldTitle(chatId: string, abstract: string) {
+  const find = chatLogData.value.find((item: any) => item.id == chatId)
+  if (find) {
+    find.abstract = abstract
+  }
+}
+
 function refresh(id: string) {
-  getChatLog(applicationDetail.value.id)
   currentChatId.value = id
+  getChatLog(true)
 }
 /**
  *初始化历史对话记录
  */
 const init = () => {
-  if (applicationDetail.value.show_history || !user.isEnterprise()) {
-    getChatLog(applicationDetail.value.id)
-  }
+  getChatLog()
 }
 
 onMounted(() => {
   init()
 })
 </script>
-<style lang="scss">
+<style lang="scss" scoped>
 .chat-mobile {
   overflow: hidden;
   &__header {
@@ -329,69 +280,6 @@ onMounted(() => {
     height: calc(100vh - var(--app-header-height) - 16px);
     overflow: hidden;
   }
-  .new-chat-button {
-    z-index: 11;
-    font-size: 1rem;
-  }
-  // 历史对话弹出层
-  .chat-popover {
-    position: fixed;
-    top: var(--app-header-height);
-    background: #ffffff;
-    padding-bottom: 24px;
-    z-index: 2009;
-  }
-  .chat-popover-button {
-    z-index: 2009;
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    font-size: 22px;
-  }
-  // &.chat-embed--popup {
-  //   .chat-popover-button {
-  //     right: 85px;
-  //   }
-  // }
-  .chat-popover-mask {
-    background-color: var(--el-overlay-color-lighter);
-    bottom: 0;
-    height: 100%;
-    left: 0;
-    overflow: auto;
-    position: fixed;
-    right: 0;
-    top: var(--app-header-height);
-    z-index: 2008;
-  }
-  .gradient-divider {
-    position: relative;
-    text-align: center;
-    color: var(--el-color-info);
-    ::before {
-      content: '';
-      width: 17%;
-      height: 1px;
-      background: linear-gradient(90deg, rgba(222, 224, 227, 0) 0%, #dee0e3 100%);
-      position: absolute;
-      left: 16px;
-      top: 50%;
-    }
-    ::after {
-      content: '';
-      width: 17%;
-      height: 1px;
-      background: linear-gradient(90deg, #dee0e3 0%, rgba(222, 224, 227, 0) 100%);
-      position: absolute;
-      right: 16px;
-      top: 50%;
-    }
-  }
-  // .AiChat-embed {
-  //   .ai-chat__operate {
-  //     padding-top: 12px;
-  //   }
-  // }
 }
 </style>
 <style lang="scss" scoped>

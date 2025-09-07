@@ -19,8 +19,14 @@
                 size="small"
                 style="width: 85px"
               >
-                <el-option :label="$t('views.applicationWorkflow.nodes.replyNode.replyContent.reference')" value="referencing" />
-                <el-option :label="$t('views.applicationWorkflow.nodes.replyNode.replyContent.custom')" value="content" />
+                <el-option
+                  :label="$t('views.applicationWorkflow.nodes.replyNode.replyContent.reference')"
+                  value="referencing"
+                />
+                <el-option
+                  :label="$t('common.custom')"
+                  value="content"
+                />
               </el-select>
             </div>
           </template>
@@ -39,7 +45,7 @@
             :nodeModel="nodeModel"
             class="w-full"
             :placeholder="
-              $t('views.applicationWorkflow.nodes.searchDatasetNode.searchQuestion.placeholder')
+              $t('views.applicationWorkflow.nodes.searchKnowledgeNode.searchQuestion.placeholder')
             "
             v-model="form_data.fields"
           />
@@ -51,10 +57,9 @@
           <template #label>
             <div class="flex align-center">
               <div class="mr-4">
-                <span
-                  >{{ $t('views.applicationWorkflow.nodes.aiChatNode.returnContent.label')
-                  }}<span class="danger">*</span></span
-                >
+                <span>{{
+                  $t('views.applicationWorkflow.nodes.aiChatNode.returnContent.label')
+                }}</span>
               </div>
               <el-tooltip effect="dark" placement="right" popper-class="max-w-200">
                 <template #content>
@@ -92,7 +97,7 @@ const form = {
   reply_type: 'content',
   content: '',
   fields: [],
-  is_result: false
+  is_result: true,
 }
 
 const form_data = computed({

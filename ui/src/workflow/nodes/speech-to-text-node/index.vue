@@ -16,8 +16,8 @@
           prop="stt_model_id"
           :rules="{
             required: true,
-            message: $t('views.application.applicationForm.form.voiceInput.placeholder'),
-            trigger: 'change'
+            message: $t('views.application.form.voiceInput.placeholder'),
+            trigger: 'change',
           }"
         >
           <template #label>
@@ -25,7 +25,7 @@
               <div>
                 <span
                   >{{ $t('views.applicationWorkflow.nodes.speechToTextNode.stt_model.label')
-                  }}<span class="danger">*</span></span
+                  }}<span class="color-danger">*</span></span
                 >
               </div>
             </div>
@@ -34,8 +34,10 @@
             @wheel="wheel"
             :teleported="false"
             v-model="form_data.stt_model_id"
-            :placeholder="$t('views.application.applicationForm.form.voiceInput.placeholder')"
+            :placeholder="$t('views.application.form.voiceInput.placeholder')"
             :options="modelOptions"
+            showFooter
+            :model-type="'STT'"
           ></ModelSelect>
         </el-form-item>
         <el-form-item
@@ -44,7 +46,7 @@
           :rules="{
             message: $t('views.applicationWorkflow.nodes.speechToTextNode.audio.label'),
             trigger: 'change',
-            required: true
+            required: true,
           }"
         >
           <template #label>
@@ -52,7 +54,7 @@
               <div>
                 <span
                   >{{ $t('views.applicationWorkflow.nodes.speechToTextNode.audio.label')
-                  }}<span class="danger">*</span></span
+                  }}<span class="color-danger">*</span></span
                 >
               </div>
             </div>
@@ -73,10 +75,9 @@
           <template #label>
             <div class="flex align-center">
               <div class="mr-4">
-                <span
-                  >{{ $t('views.applicationWorkflow.nodes.aiChatNode.returnContent.label')
-                  }}<span class="danger">*</span></span
-                >
+                <span>{{
+                  $t('views.applicationWorkflow.nodes.aiChatNode.returnContent.label')
+                }}</span>
               </div>
               <el-tooltip effect="dark" placement="right" popper-class="max-w-200">
                 <template #content>
@@ -95,19 +96,24 @@
 
 <script setup lang="ts">
 import NodeContainer from '@/workflow/common/NodeContainer.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, inject } from 'vue'
 import { groupBy, set } from 'lodash'
-import applicationApi from '@/api/application'
-import { app } from '@/main'
-import useStore from '@/stores'
 import NodeCascader from '@/workflow/common/NodeCascader.vue'
 import type { FormInstance } from 'element-plus'
+import { useRoute } from 'vue-router'
+import { loadSharedApi } from '@/utils/dynamics-api/shared-api'
+const getApplicationDetail = inject('getApplicationDetail') as any
+const route = useRoute()
 
-const { model } = useStore()
+const {} = route as any
 
-const {
-  params: { id }
-} = app.config.globalProperties.$route as any
+const apiType = computed(() => {
+  if (route.path.includes('resource-management')) {
+    return 'systemManage'
+  } else {
+    return 'workspace'
+  }
+})
 
 const props = defineProps<{ nodeModel: any }>()
 const modelOptions = ref<any>(null)
@@ -117,7 +123,7 @@ const nodeCascaderRef = ref()
 const validate = () => {
   return Promise.all([
     nodeCascaderRef.value ? nodeCascaderRef.value.validate() : Promise.resolve(''),
-    aiChatNodeFormRef.value?.validate()
+    aiChatNodeFormRef.value?.validate(),
   ]).catch((err: any) => {
     return Promise.reject({ node: props.nodeModel, errMessage: err })
   })
@@ -136,7 +142,7 @@ const wheel = (e: any) => {
 const form = {
   stt_model_id: '',
   is_result: true,
-  audio_list: []
+  audio_list: [],
 }
 
 const form_data = computed({
@@ -150,23 +156,28 @@ const form_data = computed({
   },
   set: (value) => {
     set(props.nodeModel.properties, 'node_data', value)
-  }
+  },
 })
 
-function getModel() {
-  if (id) {
-    applicationApi.getApplicationSTTModel(id).then((res: any) => {
+const application = getApplicationDetail()
+function getSelectModel() {
+  const obj =
+    apiType.value === 'systemManage'
+      ? {
+          model_type: 'STT',
+          workspace_id: application.value?.workspace_id,
+        }
+      : {
+          model_type: 'STT',
+        }
+  loadSharedApi({ type: 'model', systemType: apiType.value })
+    .getSelectModelList(obj)
+    .then((res: any) => {
       modelOptions.value = groupBy(res?.data, 'provider')
     })
-  } else {
-    model.asyncGetModel().then((res: any) => {
-      modelOptions.value = groupBy(res?.data, 'provider')
-    })
-  }
 }
-
 onMounted(() => {
-  getModel()
+  getSelectModel()
 
   set(props.nodeModel, 'validate', validate)
 })

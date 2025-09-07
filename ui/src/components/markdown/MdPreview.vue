@@ -11,13 +11,23 @@ import useStore from '@/stores'
 import ZH_TW from '@vavt/cm-extension/dist/locale/zh-TW'
 
 defineOptions({ name: 'MdPreview' })
+
+const emit = defineEmits(['clickPreview'])
+
 const { user } = useStore()
 const language = computed(() => user.getLanguage() || getBrowserLang() || '')
 config({
   editorConfig: {
     languageUserDefined: {
-      'zh-Hant': ZH_TW
-    }
-  }
+      'zh-Hant': ZH_TW,
+    },
+  },
 })
 </script>
+
+<style lang="scss" scoped>
+:deep(audio) {
+  width: 300px;
+  height: 43px;
+}
+</style>

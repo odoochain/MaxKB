@@ -35,7 +35,7 @@ import FormItem from '@/components/dynamics-form/FormItem.vue'
 import type { FormField } from '@/components/dynamics-form/type'
 import { ref, onBeforeMount, watch, type Ref } from 'vue'
 import type { FormInstance } from 'element-plus'
-import triggerApi from '@/api/provider'
+import { get } from '@/request/index'
 import type Result from '@/request/Result'
 import _ from 'lodash'
 
@@ -56,7 +56,7 @@ const props = withDefaults(
 
     modelValue?: Dict<any>
   }>(),
-  { view: false, defaultItemWidth: '75%', otherParams: () => {} }
+  { view: false, defaultItemWidth: '75%', otherParams: () => {} },
 )
 
 const formValue = ref<Dict<any>>({})
@@ -74,12 +74,12 @@ const formFieldRef = ref<Array<InstanceType<typeof FormItem>>>([])
  */
 const show = (field: FormField) => {
   if (field.relation_show_field_dict) {
-    let keys = Object.keys(field.relation_show_field_dict)
+    const keys = Object.keys(field.relation_show_field_dict)
     for (const index in keys) {
       const key = keys[index]
-      let v = _.get(formValue.value, key)
+      const v = _.get(formValue.value, key)
       if (v && v !== undefined && v !== null) {
-        let values = field.relation_show_field_dict[key]
+        const values = field.relation_show_field_dict[key]
         if (values && values.length > 0) {
           return values.includes(v)
         } else {
@@ -108,7 +108,7 @@ watch(
   () => {
     emit('update:modelValue', formValue.value)
   },
-  { deep: true }
+  { deep: true },
 )
 
 /**
@@ -117,25 +117,6 @@ watch(
  * @param loading
  */
 const trigger = (field: FormField, loading: Ref<boolean>) => {
-  if (field.provider && field.method) {
-    return triggerApi
-      .trigger(
-        field.provider,
-        field.method,
-        {
-          ...props.otherParams,
-          ...formValue.value
-        },
-        loading
-      )
-      .then((ok) => {
-        if (field.trigger_type === 'CHILD_FORMS') {
-          field.children = ok.data as Array<FormField>
-        } else {
-          field.option_list = ok.data as Array<any>
-        }
-      })
-  }
   return Promise.resolve([])
 }
 /**
@@ -161,10 +142,10 @@ onBeforeMount(() => {
 
 const render = (
   render_data: string | Array<FormField> | Promise<Result<Array<FormField>>>,
-  data?: Dict<any>
+  data?: Dict<any>,
 ) => {
   if (typeof render_data == 'string') {
-    triggerApi.get(render_data, {}, loading).then((ok) => {
+    get(render_data, {}, loading).then((ok) => {
       formFieldList.value = ok.data
     })
   } else if (render_data instanceof Array) {
@@ -181,7 +162,13 @@ const render = (
         if (form_data[item.field] !== undefined) {
           if (item.value_field && item.option_list && item.option_list.length > 0) {
             const value_field = item.value_field
-            const find = item.option_list?.find((i) => i[value_field] === form_data[item.field])
+            const find = item.option_list?.find((i) => {
+              if (typeof form_data[item.field] === 'string') {
+                return i[value_field] === form_data[item.field]
+              } else {
+                return form_data[item.field].indexOf([value_field]) === -1
+              }
+            })
             if (find) {
               return { [item.field]: form_data[item.field] }
             }
@@ -207,7 +194,7 @@ const render = (
 const validate = () => {
   return Promise.all([
     ...formFieldRef.value.map((item) => item.validate()),
-    ruleFormRef.value ? ruleFormRef.value.validate() : Promise.resolve()
+    ruleFormRef.value ? ruleFormRef.value.validate() : Promise.resolve(),
   ])
 }
 
@@ -216,7 +203,7 @@ defineExpose({
   initDefaultData,
   validate,
   render,
-  ruleFormRef
+  ruleFormRef,
 })
 </script>
 <style lang="scss" scoped></style>

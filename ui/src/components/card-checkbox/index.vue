@@ -8,13 +8,7 @@
     <div class="flex-between">
       <div class="flex align-center">
         <slot name="icon">
-          <AppAvatar v-if="data.type === '1'" class="mr-8 avatar-purple" shape="square" :size="32">
-            <img src="@/assets/icon_web.svg" style="width: 58%" alt="" />
-          </AppAvatar>
-
-          <AppAvatar v-else class="mr-12 avatar-blue" shape="square" :size="32">
-            <img src="@/assets/icon_document.svg" style="width: 58%" alt="" />
-          </AppAvatar>
+          <KnowledgeIcon :type="data.type" />
         </slot>
         <slot></slot>
       </div>
@@ -36,11 +30,6 @@ const props = defineProps<{
 
 const toModelValue = computed(() => (props.valueField ? props.data[props.valueField] : props.data))
 
-// const isChecked = computed({
-//   get: () => props.modelValue.includes(toModelValue.value)),
-//   set: (val) => val
-// })
-
 const emit = defineEmits(['update:modelValue', 'change'])
 
 const checked = () => {
@@ -48,7 +37,7 @@ const checked = () => {
   if (props.modelValue.includes(toModelValue.value)) {
     emit(
       'update:modelValue',
-      value.filter((item) => item !== toModelValue.value)
+      value.filter((item) => item !== toModelValue.value),
     )
   } else {
     emit('update:modelValue', [...value, toModelValue.value])

@@ -18,13 +18,11 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError, ErrorDetail
 
 from application.flow.common import Answer, NodeChunk
-from application.models import ChatRecord
-from application.models.api_key_model import ApplicationPublicAccessClient
-from common.constants.authentication_type import AuthenticationType
+from application.models import ApplicationChatUserStats
+from application.models import ChatRecord, ChatUserType
 from common.field.common import InstanceField
-from common.util.field_message import ErrMessage
 
-chat_cache = cache.caches['chat_cache']
+chat_cache = cache
 
 
 def write_context(step_variable: Dict, global_variable: Dict, node, workflow):
@@ -46,16 +44,14 @@ def is_interrupt(node, step_variable: Dict, global_variable: Dict):
 
 
 class WorkFlowPostHandler:
-    def __init__(self, chat_info, client_id, client_type):
+    def __init__(self, chat_info):
         self.chat_info = chat_info
-        self.client_id = client_id
-        self.client_type = client_type
 
-    def handler(self, chat_id,
-                chat_record_id,
-                answer,
-                workflow):
-        question = workflow.params['question']
+    def handler(self, workflow):
+        workflow_body = workflow.get_body()
+        question = workflow_body.get('question')
+        chat_record_id = workflow_body.get('chat_record_id')
+        chat_id = workflow_body.get('chat_id')
         details = workflow.get_runtime_details()
         message_tokens = sum([row.get('message_tokens') for row in details.values() if
                               'message_tokens' in row and row.get('message_tokens') is not None])
@@ -84,15 +80,16 @@ class WorkFlowPostHandler:
                                      answer_text_list=answer_text_list,
                                      run_time=time.time() - workflow.context['start_time'],
                                      index=0)
-        asker = workflow.context.get('asker', None)
-        self.chat_info.append_chat_record(chat_record, self.client_id, asker)
-        # 重新设置缓存
-        chat_cache.set(chat_id,
-                       self.chat_info, timeout=60 * 30)
-        if self.client_type == AuthenticationType.APPLICATION_ACCESS_TOKEN.value:
-            application_public_access_client = (QuerySet(ApplicationPublicAccessClient)
-                                                .filter(client_id=self.client_id,
-                                                        application_id=self.chat_info.application.id).first())
+
+        self.chat_info.append_chat_record(chat_record)
+        self.chat_info.set_cache()
+
+        if not self.chat_info.debug and [ChatUserType.ANONYMOUS_USER.value, ChatUserType.CHAT_USER.value].__contains__(
+                workflow_body.get('chat_user_type')):
+            application_public_access_client = (QuerySet(ApplicationChatUserStats)
+                                                .filter(chat_user_id=workflow_body.get('chat_user_id'),
+                                                        chat_user_type=workflow_body.get('chat_user_type'),
+                                                        application_id=self.chat_info.application_id).first())
             if application_public_access_client is not None:
                 application_public_access_client.access_num = application_public_access_client.access_num + 1
                 application_public_access_client.intraday_access_num = application_public_access_client.intraday_access_num + 1
@@ -123,31 +120,36 @@ class NodeResult:
 
 
 class ReferenceAddressSerializer(serializers.Serializer):
-    node_id = serializers.CharField(required=True, error_messages=ErrMessage.char("节点id"))
+    node_id = serializers.CharField(required=True, label="节点id")
     fields = serializers.ListField(
-        child=serializers.CharField(required=True, error_messages=ErrMessage.char("节点字段")), required=True,
-        error_messages=ErrMessage.list("节点字段数组"))
+        child=serializers.CharField(required=True, label="节点字段"), required=True,
+        label="节点字段数组")
 
 
 class FlowParamsSerializer(serializers.Serializer):
     # 历史对答
     history_chat_record = serializers.ListField(child=InstanceField(model_type=ChatRecord, required=True),
-                                                error_messages=ErrMessage.list("历史对答"))
+                                                label="历史对答")
 
-    question = serializers.CharField(required=True, error_messages=ErrMessage.list("用户问题"))
+    question = serializers.CharField(required=True, label="用户问题")
 
-    chat_id = serializers.CharField(required=True, error_messages=ErrMessage.list("对话id"))
+    chat_id = serializers.CharField(required=True, label="对话id")
 
-    chat_record_id = serializers.CharField(required=True, error_messages=ErrMessage.char("对话记录id"))
+    chat_record_id = serializers.CharField(required=True, label="对话记录id")
 
-    stream = serializers.BooleanField(required=True, error_messages=ErrMessage.boolean("流式输出"))
+    stream = serializers.BooleanField(required=True, label="流式输出")
 
-    client_id = serializers.CharField(required=False, error_messages=ErrMessage.char("客户端id"))
+    chat_user_id = serializers.CharField(required=False, label="对话用户id")
 
-    client_type = serializers.CharField(required=False, error_messages=ErrMessage.char("客户端类型"))
+    chat_user_type = serializers.CharField(required=False, label="对话用户类型")
 
-    user_id = serializers.UUIDField(required=True, error_messages=ErrMessage.uuid("用户id"))
-    re_chat = serializers.BooleanField(required=True, error_messages=ErrMessage.boolean("换个答案"))
+    workspace_id = serializers.CharField(required=True, label="工作空间id")
+
+    application_id = serializers.CharField(required=True, label="应用id")
+
+    re_chat = serializers.BooleanField(required=True, label="换个答案")
+
+    debug = serializers.BooleanField(required=True, label="是否debug")
 
 
 class INode:

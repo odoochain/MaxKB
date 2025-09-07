@@ -7,11 +7,13 @@
     @desc:
 """
 import io
+import traceback
 
 import openpyxl
 
 from common.handle.base_parse_qa_handle import BaseParseQAHandle, get_title_row_index_dict, get_row_value
-from common.handle.impl.tools import xlsx_embed_cells_images
+from common.handle.impl.common_handle import xlsx_embed_cells_images
+from common.utils.logger import maxkb_logger
 
 
 def handle_sheet(file_name, sheet, image_dict):
@@ -37,7 +39,7 @@ def handle_sheet(file_name, sheet, image_dict):
         content = str(content.value)
         image = image_dict.get(content, None)
         if image is not None:
-            content = f'![](/api/image/{image.id})'
+            content = f'![](./oss/file/{image.id})'
         paragraph_list.append({'title': title[0:255],
                                'content': content[0:102400],
                                'problem_list': problem_list})
@@ -69,4 +71,5 @@ class XlsxParseQAHandle(BaseParseQAHandle):
                         sheet.title, sheet, image_dict) for sheet
                      in worksheets] if row is not None]
         except Exception as e:
+            maxkb_logger.error(f"Error processing XLSX file {file.name}: {e}, {traceback.format_exc()}")
             return [{'name': file.name, 'paragraphs': []}]

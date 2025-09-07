@@ -1,14 +1,14 @@
 # coding=utf-8
 import logging
+import traceback
 
 import xlrd
 
 from common.handle.base_parse_table_handle import BaseParseTableHandle
+from common.utils.logger import maxkb_logger
 
-max_kb = logging.getLogger("max_kb")
 
-
-class XlsSplitHandle(BaseParseTableHandle):
+class XlsParseTableHandle(BaseParseTableHandle):
     def support(self, file, get_buffer):
         file_name: str = file.name.lower()
         buffer = get_buffer(file)
@@ -25,7 +25,6 @@ class XlsSplitHandle(BaseParseTableHandle):
             for sheet in sheets:
                 # 获取合并单元格的范围信息
                 merged_cells = sheet.merged_cells
-                print(merged_cells)
                 data = []
                 paragraphs = []
                 # 获取第一行作为标题行
@@ -57,7 +56,7 @@ class XlsSplitHandle(BaseParseTableHandle):
                 result.append({'name': sheet.name, 'paragraphs': paragraphs})
 
         except BaseException as e:
-            max_kb.error(f'excel split handle error: {e}')
+            maxkb_logger.error(f"Error processing XLS file {file.name}: {e}, {traceback.format_exc()}")
             return [{'name': file.name, 'paragraphs': []}]
         return result
 
@@ -82,7 +81,10 @@ class XlsSplitHandle(BaseParseTableHandle):
                 for row in data:
                     # 将每个单元格中的内容替换换行符为 <br> 以保留原始格式
                     md_table += '| ' + ' | '.join(
-                        [str(cell).replace('\n', '<br>') if cell else '' for cell in row]) + ' |\n'
+                        [str(cell)
+                         .replace('\r\n', '<br>')
+                         .replace('\n', '<br>')
+                         if cell else '' for cell in row]) + ' |\n'
                 md_tables += md_table + '\n\n'
 
             return md_tables

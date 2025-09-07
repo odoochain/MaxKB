@@ -17,9 +17,9 @@
           :rules="{
             required: true,
             message: $t(
-              'views.applicationWorkflow.nodes.imageUnderstandNode.model.requiredMessage'
+              'views.applicationWorkflow.nodes.imageUnderstandNode.model.requiredMessage',
             ),
-            trigger: 'change'
+            trigger: 'change',
           }"
         >
           <template #label>
@@ -27,7 +27,7 @@
               <div>
                 <span
                   >{{ t('views.applicationWorkflow.nodes.imageUnderstandNode.model.label')
-                  }}<span class="danger">*</span></span
+                  }}<span class="color-danger">*</span></span
                 >
               </div>
               <el-button
@@ -37,7 +37,7 @@
                 @click="openAIParamSettingDialog(form_data.model_id)"
                 @refreshForm="refreshParam"
               >
-                <el-icon><Setting /></el-icon>
+                <AppIcon iconName="app-setting"></AppIcon>
               </el-button>
             </div>
           </template>
@@ -50,46 +50,46 @@
               $t('views.applicationWorkflow.nodes.imageUnderstandNode.model.requiredMessage')
             "
             :options="modelOptions"
+            showFooter
+            :model-type="'IMAGE'"
           ></ModelSelect>
         </el-form-item>
 
-        <el-form-item :label="$t('views.application.applicationForm.form.roleSettings.label')">
+        <el-form-item :label="$t('views.application.form.roleSettings.label')">
           <MdEditorMagnify
-            :title="$t('views.application.applicationForm.form.roleSettings.label')"
+            :title="$t('views.application.form.roleSettings.label')"
             v-model="form_data.system"
             style="height: 100px"
             @submitDialog="submitSystemDialog"
-            :placeholder="$t('views.application.applicationForm.form.roleSettings.label')"
+            :placeholder="$t('views.application.form.roleSettings.label')"
           />
         </el-form-item>
         <el-form-item
-          :label="$t('views.application.applicationForm.form.prompt.label')"
+          :label="$t('views.application.form.prompt.label')"
           prop="prompt"
           :rules="{
             required: true,
-            message: $t('views.application.applicationForm.form.prompt.requiredMessage'),
-            trigger: 'blur'
+            message: $t('views.application.form.prompt.requiredMessage'),
+            trigger: 'blur',
           }"
         >
           <template #label>
             <div class="flex align-center">
               <div class="mr-4">
                 <span
-                  >{{ $t('views.application.applicationForm.form.prompt.label')
-                  }}<span class="danger">*</span></span
+                  >{{ $t('views.application.form.prompt.label')
+                  }}<span class="color-danger">*</span></span
                 >
               </div>
               <el-tooltip effect="dark" placement="right" popper-class="max-w-200">
-                <template #content
-                  >{{ $t('views.application.applicationForm.form.prompt.tooltip') }}
-                </template>
+                <template #content>{{ $t('views.application.form.prompt.tooltip') }} </template>
                 <AppIcon iconName="app-warning" class="app-warning-icon"></AppIcon>
               </el-tooltip>
             </div>
           </template>
           <MdEditorMagnify
             @wheel="wheel"
-            :title="$t('views.application.applicationForm.form.prompt.label')"
+            :title="$t('views.application.form.prompt.label')"
             v-model="form_data.prompt"
             style="height: 150px"
             @submitDialog="submitDialog"
@@ -98,7 +98,7 @@
         <el-form-item>
           <template #label>
             <div class="flex-between">
-              <div>{{ $t('views.application.applicationForm.form.historyRecord.label') }}</div>
+              <div>{{ $t('views.application.form.historyRecord.label') }}</div>
               <el-select v-model="form_data.dialogue_type" type="small" style="width: 100px">
                 <el-option :label="$t('views.applicationWorkflow.node')" value="NODE" />
                 <el-option :label="$t('views.applicationWorkflow.workflow')" value="WORKFLOW" />
@@ -121,14 +121,14 @@
             type: 'array',
             required: true,
             message: $t(
-              'views.applicationWorkflow.nodes.imageUnderstandNode.image.requiredMessage'
+              'views.applicationWorkflow.nodes.imageUnderstandNode.image.requiredMessage',
             ),
-            trigger: 'change'
+            trigger: 'change',
           }"
         >
           <template #label
             >{{ $t('views.applicationWorkflow.nodes.imageUnderstandNode.image.label')
-            }}<span class="danger">*</span></template
+            }}<span class="color-danger">*</span></template
           >
           <NodeCascader
             ref="nodeCascaderRef"
@@ -147,10 +147,9 @@
           <template #label>
             <div class="flex align-center">
               <div class="mr-4">
-                <span
-                  >{{ $t('views.applicationWorkflow.nodes.aiChatNode.returnContent.label')
-                  }}<span class="danger">*</span></span
-                >
+                <span>{{
+                  $t('views.applicationWorkflow.nodes.aiChatNode.returnContent.label')
+                }}</span>
               </div>
               <el-tooltip effect="dark" placement="right" popper-class="max-w-200">
                 <template #content>
@@ -170,20 +169,28 @@
 
 <script setup lang="ts">
 import NodeContainer from '@/workflow/common/NodeContainer.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, inject } from 'vue'
 import { groupBy, set } from 'lodash'
-import applicationApi from '@/api/application'
-import { app } from '@/main'
-import useStore from '@/stores'
 import NodeCascader from '@/workflow/common/NodeCascader.vue'
 import type { FormInstance } from 'element-plus'
 import AIModeParamSettingDialog from '@/views/application/component/AIModeParamSettingDialog.vue'
 import { t } from '@/locales'
-const { model } = useStore()
+import { useRoute } from 'vue-router'
+import { loadSharedApi } from '@/utils/dynamics-api/shared-api'
+const getApplicationDetail = inject('getApplicationDetail') as any
+const route = useRoute()
 
 const {
-  params: { id }
-} = app.config.globalProperties.$route as any
+  params: { id },
+} = route as any
+
+const apiType = computed(() => {
+  if (route.path.includes('resource-management')) {
+    return 'systemManage'
+  } else {
+    return 'workspace'
+  }
+})
 
 const props = defineProps<{ nodeModel: any }>()
 const modelOptions = ref<any>(null)
@@ -194,7 +201,7 @@ const nodeCascaderRef = ref()
 const validate = () => {
   return Promise.all([
     nodeCascaderRef.value ? nodeCascaderRef.value.validate() : Promise.resolve(''),
-    aiChatNodeFormRef.value?.validate()
+    aiChatNodeFormRef.value?.validate(),
   ]).catch((err: any) => {
     return Promise.reject({ node: props.nodeModel, errMessage: err })
   })
@@ -221,7 +228,7 @@ const form = {
   is_result: true,
   temperature: null,
   max_tokens: null,
-  image_list: ['start-node', 'image']
+  image_list: ['start-node', 'image'],
 }
 
 const form_data = computed({
@@ -235,19 +242,25 @@ const form_data = computed({
   },
   set: (value) => {
     set(props.nodeModel.properties, 'node_data', value)
-  }
+  },
 })
 
-function getModel() {
-  if (id) {
-    applicationApi.getApplicationImageModel(id).then((res: any) => {
+const application = getApplicationDetail()
+function getSelectModel() {
+  const obj =
+    apiType.value === 'systemManage'
+      ? {
+          model_type: 'IMAGE',
+          workspace_id: application.value?.workspace_id,
+        }
+      : {
+          model_type: 'IMAGE',
+        }
+  loadSharedApi({ type: 'model', systemType: apiType.value })
+    .getSelectModelList(obj)
+    .then((res: any) => {
       modelOptions.value = groupBy(res?.data, 'provider')
     })
-  } else {
-    model.asyncGetModel().then((res: any) => {
-      modelOptions.value = groupBy(res?.data, 'provider')
-    })
-  }
 }
 
 function submitSystemDialog(val: string) {
@@ -269,7 +282,7 @@ function refreshParam(data: any) {
 }
 
 onMounted(() => {
-  getModel()
+  getSelectModel()
 
   set(props.nodeModel, 'validate', validate)
 })

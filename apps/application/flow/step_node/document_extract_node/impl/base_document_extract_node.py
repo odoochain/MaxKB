@@ -7,9 +7,9 @@ from django.db.models import QuerySet
 
 from application.flow.i_step_node import NodeResult
 from application.flow.step_node.document_extract_node.i_document_extract_node import IDocumentExtractNode
-from dataset.models import File
-from dataset.serializers.document_serializers import split_handles, parse_table_handle_list, FileBufferHandle
-from dataset.serializers.file_serializers import FileSerializer
+from knowledge.models import File, FileSourceType
+from knowledge.serializers.document import split_handles, parse_table_handle_list, FileBufferHandle
+from oss.serializers.file import FileSerializer
 
 
 def bytes_to_uploaded_file(file_bytes, file_name="file.txt"):
@@ -37,10 +37,10 @@ def bytes_to_uploaded_file(file_bytes, file_name="file.txt"):
 
 splitter = '\n`-----------------------------------`\n'
 
+
 class BaseDocumentExtractNode(IDocumentExtractNode):
     def save_context(self, details, workflow_manage):
         self.context['content'] = details.get('content')
-
 
     def execute(self, document, chat_id, **kwargs):
         get_buffer = FileBufferHandle().get_buffer
@@ -61,12 +61,18 @@ class BaseDocumentExtractNode(IDocumentExtractNode):
                     'application_id': str(application.id) if application.id else None,
                     'file_id': str(image.id)
                 }
-                file = bytes_to_uploaded_file(image.image, image.image_name)
-                FileSerializer(data={'file': file, 'meta': meta}).upload()
+                file_bytes = image.meta.pop('content')
+                f = bytes_to_uploaded_file(file_bytes, image.file_name)
+                FileSerializer(data={
+                    'file': f,
+                    'meta': meta,
+                    'source_id': meta['application_id'],
+                    'source_type': FileSourceType.APPLICATION.value
+                }).upload()
 
         for doc in document:
             file = QuerySet(File).filter(id=doc['file_id']).first()
-            buffer = io.BytesIO(file.get_byte().tobytes())
+            buffer = io.BytesIO(file.get_bytes())
             buffer.name = doc['name']  # this is the important line
 
             for split_handle in (parse_table_handle_list + split_handles):

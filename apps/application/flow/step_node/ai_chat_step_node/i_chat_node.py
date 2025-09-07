@@ -12,27 +12,34 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from application.flow.i_step_node import INode, NodeResult
-from common.util.field_message import ErrMessage
 
 
 class ChatNodeSerializer(serializers.Serializer):
-    model_id = serializers.CharField(required=True, error_messages=ErrMessage.char(_("Model id")))
+    model_id = serializers.CharField(required=True, label=_("Model id"))
     system = serializers.CharField(required=False, allow_blank=True, allow_null=True,
-                                   error_messages=ErrMessage.char(_("Role Setting")))
-    prompt = serializers.CharField(required=True, error_messages=ErrMessage.char(_("Prompt word")))
+                                   label=_("Role Setting"))
+    prompt = serializers.CharField(required=True, label=_("Prompt word"))
     # 多轮对话数量
-    dialogue_number = serializers.IntegerField(required=True, error_messages=ErrMessage.integer(
-        _("Number of multi-round conversations")))
+    dialogue_number = serializers.IntegerField(required=True, label=_("Number of multi-round conversations"))
 
     is_result = serializers.BooleanField(required=False,
-                                         error_messages=ErrMessage.boolean(_('Whether to return content')))
+                                         label=_('Whether to return content'))
 
     model_params_setting = serializers.DictField(required=False,
-                                                 error_messages=ErrMessage.dict(_("Model parameter settings")))
+                                                 label=_("Model parameter settings"))
     model_setting = serializers.DictField(required=False,
-                                          error_messages=ErrMessage.dict('Model settings'))
+                                          label='Model settings')
     dialogue_type = serializers.CharField(required=False, allow_blank=True, allow_null=True,
-                                          error_messages=ErrMessage.char(_("Context Type")))
+                                          label=_("Context Type"))
+    mcp_enable = serializers.BooleanField(required=False, label=_("Whether to enable MCP"))
+    mcp_servers = serializers.JSONField(required=False, label=_("MCP Server"))
+    mcp_tool_id = serializers.CharField(required=False, allow_blank=True, allow_null=True, label=_("MCP Tool ID"))
+    mcp_tool_ids = serializers.ListField(child=serializers.UUIDField(), required=False, allow_empty=True, label=_("MCP Tool IDs"), )
+    mcp_source = serializers.CharField(required=False, allow_blank=True, allow_null=True, label=_("MCP Source"))
+
+    tool_enable = serializers.BooleanField(required=False, default=False, label=_("Whether to enable tools"))
+    tool_ids = serializers.ListField(child=serializers.UUIDField(), required=False, allow_empty=True,
+                                     label=_("Tool IDs"), )
 
 
 class IChatNode(INode):
@@ -49,5 +56,12 @@ class IChatNode(INode):
                 model_params_setting=None,
                 dialogue_type=None,
                 model_setting=None,
+                mcp_enable=False,
+                mcp_servers=None,
+                mcp_tool_id=None,
+                mcp_tool_ids=None,
+                mcp_source=None,
+                tool_enable=False,
+                tool_ids=None,
                 **kwargs) -> NodeResult:
         pass

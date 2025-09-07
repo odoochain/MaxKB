@@ -1,17 +1,15 @@
 <template>
   <div class="flex-between mb-16">
-    <h5 class="lighter">{{ inputFieldConfig.title }}</h5>
+    <h5 class="break-all ellipsis lighter" style="max-width: 80%" :title="inputFieldConfig.title">
+      {{ inputFieldConfig.title }}
+    </h5>
     <div>
       <el-button type="primary" link @click="openChangeTitleDialog">
-        <el-icon>
-          <Setting />
-        </el-icon>
+        <AppIcon iconName="app-setting"></AppIcon>
       </el-button>
       <span class="ml-4">
         <el-button link type="primary" @click="openAddDialog()">
-          <el-icon class="mr-4">
-            <Plus />
-          </el-icon>
+          <AppIcon iconName="app-add-outlined" class="mr-4"></AppIcon>
           {{ $t('common.add') }}
         </el-button>
       </span>
@@ -90,15 +88,13 @@
         <span class="mr-4">
           <el-tooltip effect="dark" :content="$t('common.modify')" placement="top">
             <el-button type="primary" text @click.stop="openAddDialog(row, $index)">
-              <el-icon><EditPen /></el-icon>
+              <AppIcon iconName="app-edit"></AppIcon>
             </el-button>
           </el-tooltip>
         </span>
         <el-tooltip effect="dark" :content="$t('common.delete')" placement="top">
           <el-button type="primary" text @click="deleteField($index)">
-            <el-icon>
-              <Delete />
-            </el-icon>
+            <AppIcon iconName="app-delete"></AppIcon>
           </el-button>
         </el-tooltip>
       </template>
@@ -111,7 +107,7 @@
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { set } from 'lodash'
+import { set,cloneDeep } from 'lodash'
 import Sortable from 'sortablejs'
 import UserFieldFormDialog from './UserFieldFormDialog.vue'
 import { MsgError } from '@/utils/message'
@@ -147,7 +143,7 @@ function refreshFieldList(data: any, index: any) {
     }
   }
   // 查看另一个list又没有重复的
-  let arr = props.nodeModel.properties.api_input_field_list
+  const arr = props.nodeModel.properties.api_input_field_list
   for (let i = 0; i < arr.length; i++) {
     if (arr[i].variable === data.field) {
       MsgError(t('views.applicationWorkflow.tip.paramErrorMessage') + data.field)
@@ -167,12 +163,10 @@ function refreshFieldList(data: any, index: any) {
 function refreshFieldTitle(data: any) {
   inputFieldConfig.value = data
   UserInputTitleDialogRef.value.close()
-
-  // console.log('inputFieldConfig', inputFieldConfig.value)
 }
 
 const getDefaultValue = (row: any) => {
-  if(row.input_type === 'PasswordInput') {
+  if (row.input_type === 'PasswordInput') {
     return '******'
   }
   if (row.default_value) {
@@ -204,12 +198,12 @@ function onDragHandle() {
     onEnd: (evt) => {
       if (evt.oldIndex === undefined || evt.newIndex === undefined) return
       // 更新数据顺序
-      const items = [...inputFieldList.value]
+      const items = cloneDeep([...inputFieldList.value])
       const [movedItem] = items.splice(evt.oldIndex, 1)
       items.splice(evt.newIndex, 0, movedItem)
       inputFieldList.value = items
       props.nodeModel.graphModel.eventCenter.emit('refreshFieldList')
-    }
+    },
   })
 }
 

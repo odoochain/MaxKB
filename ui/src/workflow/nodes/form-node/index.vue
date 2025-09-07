@@ -17,7 +17,7 @@
           :rules="{
             required: true,
             message: $t('views.applicationWorkflow.nodes.formNode.formContent.requiredMessage'),
-            trigger: 'blur'
+            trigger: 'blur',
           }"
         >
           <template #label>
@@ -25,14 +25,14 @@
               <div class="mr-4">
                 <span
                   >{{ $t('views.applicationWorkflow.nodes.formNode.formContent.label')
-                  }}<span class="danger">*</span></span
+                  }}<span class="color-danger">*</span></span
                 >
               </div>
               <el-tooltip effect="dark" placement="right" popper-class="max-w-200">
                 <template #content>
                   {{
                     $t('views.applicationWorkflow.nodes.formNode.formContent.tooltip', {
-                      form: '{ form }'
+                      form: '{ form }',
                     })
                   }}
                 </template>
@@ -57,9 +57,7 @@
                 {{ $t('views.applicationWorkflow.nodes.formNode.formSetting') }}
               </h5>
               <el-button link type="primary" @click="openAddFormCollect()">
-                <el-icon class="mr-4">
-                  <Plus />
-                </el-icon>
+                <AppIcon iconName="app-add-outlined" class="mr-4"></AppIcon>
                 {{ $t('common.add') }}
               </el-button>
             </div></template
@@ -111,27 +109,25 @@
                 }}</span>
               </template>
             </el-table-column>
-            <el-table-column :label="$t('common.required')" width="85">
+            <el-table-column :label="$t('common.required')" width="55">
               <template #default="{ row }">
                 <div @click.stop>
                   <el-switch disabled size="small" v-model="row.required" />
                 </div>
               </template>
             </el-table-column>
-            <el-table-column :label="$t('common.operation')" align="left" width="90">
+            <el-table-column :label="$t('common.operation')" align="left" width="80">
               <template #default="{ row, $index }">
                 <span class="mr-4">
                   <el-tooltip effect="dark" :content="$t('common.modify')" placement="top">
                     <el-button type="primary" text @click.stop="openEditFormCollect(row, $index)">
-                      <el-icon><EditPen /></el-icon>
+                      <AppIcon iconName="app-edit"></AppIcon>
                     </el-button>
                   </el-tooltip>
                 </span>
                 <el-tooltip effect="dark" :content="$t('common.delete')" placement="top">
                   <el-button type="primary" text @click="deleteField(row)">
-                    <el-icon>
-                      <Delete />
-                    </el-icon>
+                    <AppIcon iconName="app-delete"></AppIcon>
                   </el-button>
                 </el-tooltip>
               </template>
@@ -149,13 +145,14 @@ import NodeContainer from '@/workflow/common/NodeContainer.vue'
 import AddFormCollect from '@/workflow/common/AddFormCollect.vue'
 import EditFormCollect from '@/workflow/common/EditFormCollect.vue'
 import { type FormInstance } from 'element-plus'
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, provide } from 'vue'
 import { input_type_list } from '@/components/dynamics-form/constructor/data'
 import { MsgError } from '@/utils/message'
 import { set, cloneDeep } from 'lodash'
 import Sortable from 'sortablejs'
 import { t } from '@/locales'
 const props = defineProps<{ nodeModel: any }>()
+provide('getModel', () => props.nodeModel)
 const formNodeFormRef = ref<FormInstance>()
 const tableRef = ref()
 const editFormField = (form_field_data: any, field_index: number) => {
@@ -180,12 +177,12 @@ const sync_form_field_list = () => {
   const fields = [
     {
       label: t('views.applicationWorkflow.nodes.formNode.formAllContent'),
-      value: 'form_data'
+      value: 'form_data',
     },
     ...form_data.value.form_field_list.map((item: any) => ({
       value: item.field,
-      label: typeof item.label == 'string' ? item.label : item.label.label
-    }))
+      label: typeof item.label == 'string' ? item.label : item.label.label,
+    })),
   ]
   set(props.nodeModel.properties.config, 'fields', fields)
   props.nodeModel.clear_next_node_field(false)
@@ -201,7 +198,7 @@ const openEditFormCollect = (form_field_data: any, index: number) => {
 }
 const deleteField = (form_field_data: any) => {
   form_data.value.form_field_list = form_data.value.form_field_list.filter(
-    (field: any) => field.field !== form_field_data.field
+    (field: any) => field.field !== form_field_data.field,
   )
   sync_form_field_list()
 }
@@ -210,7 +207,7 @@ const form = ref<any>({
   form_content_format: `${t('views.applicationWorkflow.nodes.formNode.form_content_format1')}
 {{form}}
 ${t('views.applicationWorkflow.nodes.formNode.form_content_format2')}`,
-  form_field_list: []
+  form_field_list: [],
 })
 const form_data = computed({
   get: () => {
@@ -223,7 +220,7 @@ const form_data = computed({
   },
   set: (value) => {
     set(props.nodeModel.properties, 'node_data', value)
-  }
+  },
 })
 
 const getDefaultValue = (row: any) => {
@@ -264,12 +261,12 @@ function onDragHandle() {
     onEnd: (evt) => {
       if (evt.oldIndex === undefined || evt.newIndex === undefined) return
       // 更新数据顺序
-      const items = [...form_data.value.form_field_list]
+      const items = cloneDeep([...form_data.value.form_field_list])
       const [movedItem] = items.splice(evt.oldIndex, 1)
       items.splice(evt.newIndex, 0, movedItem)
       form_data.value.form_field_list = items
       sync_form_field_list()
-    }
+    },
   })
 }
 onMounted(() => {

@@ -1,19 +1,18 @@
 # coding=utf-8
 """
-    @project: qabot
-    @Author：虎
-    @file： authenticate.py
-    @date：2024/3/14 03:02
+    @project: MaxKB
+    @Author：虎虎
+    @file： application_key.py
+    @date：2025/7/10 03:02
     @desc:  应用api key认证
 """
 from django.db.models import QuerySet
-
-from application.models.api_key_model import ApplicationApiKey
-from common.auth.handle.auth_base_handle import AuthBaseHandle
-from common.constants.authentication_type import AuthenticationType
-from common.constants.permission_constants import Permission, Group, Operate, RoleConstants, Auth
-from common.exception.app_exception import AppAuthenticationFailed
 from django.utils.translation import gettext_lazy as _
+
+from application.models import ApplicationApiKey, ChatUserType, ApplicationAccessToken
+from common.auth.handle.auth_base_handle import AuthBaseHandle
+from common.constants.permission_constants import Permission, Group, Operate, RoleConstants, ChatAuth
+from common.exception.app_exception import AppAuthenticationFailed
 
 
 class ApplicationKey(AuthBaseHandle):
@@ -23,22 +22,21 @@ class ApplicationKey(AuthBaseHandle):
             raise AppAuthenticationFailed(500, _('Secret key is invalid'))
         if not application_api_key.is_active:
             raise AppAuthenticationFailed(500, _('Secret key is invalid'))
-        permission_list = [Permission(group=Group.APPLICATION,
-                                      operate=Operate.USE,
-                                      dynamic_tag=str(
-                                          application_api_key.application_id)),
-                           Permission(group=Group.APPLICATION,
-                                      operate=Operate.MANAGE,
-                                      dynamic_tag=str(
-                                          application_api_key.application_id))
-                           ]
-        return application_api_key.user, Auth(role_list=[RoleConstants.APPLICATION_KEY],
-                                              permission_list=permission_list,
-                                              application_id=application_api_key.application_id,
-                                              client_id=str(application_api_key.id),
-                                              client_type=AuthenticationType.API_KEY.value,
-                                              current_role=RoleConstants.APPLICATION_KEY
-                                              )
+        application_access_token = QuerySet(ApplicationAccessToken).filter(
+            application_id=application_api_key.application_id).first()
+        if application_access_token is not None:
+            if application_access_token.authentication:
+                if application_access_token.authentication_value.get('type',
+                                                                     'password') != 'password':
+                    raise AppAuthenticationFailed(1002, _('Authentication information is incorrect'))
+        return None, ChatAuth(
+            current_role_list=[RoleConstants.CHAT_ANONYMOUS_USER],
+            permission_list=[
+                Permission(group=Group.APPLICATION,
+                           operate=Operate.READ)],
+            application_id=application_api_key.application_id,
+            chat_user_id=str(application_api_key.id),
+            chat_user_type=ChatUserType.ANONYMOUS_USER.value)
 
     def support(self, request, token: str, get_token_details):
         return str(token).startswith("application-")

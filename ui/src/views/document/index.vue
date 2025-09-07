@@ -1,519 +1,679 @@
 <template>
-  <LayoutContainer :header="$t('common.fileUpload.document')" class="document-main">
-    <div class="main-calc-height">
-      <div class="p-24">
-        <div class="flex-between">
-          <div>
-            <el-button
-              v-if="datasetDetail.type === '0'"
-              type="primary"
-              @click="router.push({ path: '/dataset/upload', query: { id: id } })"
-              >{{ $t('views.document.uploadDocument') }}
-            </el-button>
-            <el-button v-if="datasetDetail.type === '1'" type="primary" @click="importDoc"
-              >{{ $t('views.document.importDocument') }}
-            </el-button>
-            <el-button
-              @click="syncMulDocument"
-              :disabled="multipleSelection.length === 0"
-              v-if="datasetDetail.type === '1'"
-              >{{ $t('views.document.syncDocument') }}
-            </el-button>
-            <el-button
-              v-if="datasetDetail.type === '2'"
-              type="primary"
-              @click="
-                router.push({
-                  path: '/dataset/import',
-                  query: { id: id, folder_token: datasetDetail.meta.folder_token }
-                })
-              "
-              >{{ $t('views.document.importDocument') }}
-            </el-button>
-            <el-button
-              @click="syncLarkMulDocument"
-              :disabled="multipleSelection.length === 0"
-              v-if="datasetDetail.type === '2'"
-              >{{ $t('views.document.syncDocument') }}
-            </el-button>
-            <el-button @click="openDatasetDialog()" :disabled="multipleSelection.length === 0">
-              {{ $t('views.document.setting.migration') }}
-            </el-button>
-            <el-button @click="batchRefresh" :disabled="multipleSelection.length === 0">
-              {{ $t('views.dataset.setting.vectorization') }}
-            </el-button>
-            <el-button @click="openGenerateDialog()" :disabled="multipleSelection.length === 0">
-              {{ $t('views.document.generateQuestion.title') }}
-            </el-button>
-            <el-button @click="openBatchEditDocument" :disabled="multipleSelection.length === 0">
-              {{ $t('common.setting') }}
-            </el-button>
-            <el-button @click="deleteMulDocument" :disabled="multipleSelection.length === 0">
-              {{ $t('common.delete') }}
-            </el-button>
+  <div class="document p-16-24">
+    <h2 class="mb-16">{{ $t('common.fileUpload.document') }}</h2>
+    <el-card style="--el-card-padding: 0">
+      <div class="main-calc-height">
+        <div class="p-24">
+          <div class="flex-between">
+            <div>
+              <template v-if="!isShared">
+                <el-button
+                  v-if="knowledgeDetail?.type === 0 && permissionPrecise.doc_create(id)"
+                  type="primary"
+                  @click="
+                    router.push({
+                      path: `/knowledge/document/upload/${folderId}`,
+                      query: { id: id },
+                    })
+                  "
+                  >{{ $t('views.document.uploadDocument') }}
+                </el-button>
+                <el-button
+                  v-if="knowledgeDetail?.type === 1 && permissionPrecise.doc_create(id)"
+                  type="primary"
+                  @click="importDoc"
+                  >{{ $t('views.document.importDocument') }}
+                </el-button>
+                <el-button
+                  v-if="knowledgeDetail?.type === 2 && permissionPrecise.doc_create(id)"
+                  type="primary"
+                  @click="
+                    router.push({
+                      path: `/knowledge/import/${folderId}`,
+                      query: {
+                        id: id,
+                        folder_token: knowledgeDetail?.meta.folder_token,
+                      },
+                    })
+                  "
+                  >{{ $t('views.document.importDocument') }}
+                </el-button>
+                <el-button
+                  @click="batchRefresh"
+                  :disabled="multipleSelection.length === 0"
+                  v-if="permissionPrecise.doc_vector(id)"
+                  >{{ $t('views.knowledge.setting.vectorization') }}
+                </el-button>
+                <el-button
+                  @click="openGenerateDialog()"
+                  :disabled="multipleSelection.length === 0"
+                  v-if="permissionPrecise.doc_generate(id)"
+                  >{{ $t('views.document.generateQuestion.title') }}
+                </el-button>
+                <el-button
+                  @click="openBatchEditDocument"
+                  :disabled="multipleSelection.length === 0"
+                  v-if="permissionPrecise.doc_edit(id)"
+                >
+                  {{ $t('common.setting') }}
+                </el-button>
+                <el-dropdown v-if="MoreFilledPermission0(id)">
+                  <el-button class="ml-12 mr-12">
+                    <AppIcon iconName="app-more"></AppIcon>
+                  </el-button>
+                  <template #dropdown>
+                    <el-dropdown-menu>
+                      <el-dropdown-item
+                        @click="openknowledgeDialog()"
+                        :disabled="multipleSelection.length === 0"
+                        v-if="permissionPrecise.doc_migrate(id)"
+                      >
+                        {{ $t('views.document.setting.migration') }}
+                      </el-dropdown-item>
+                      <el-dropdown-item
+                        divided
+                        @click="syncMulDocument"
+                        :disabled="multipleSelection.length === 0"
+                        v-if="knowledgeDetail?.type === 1 && permissionPrecise.doc_sync(id)"
+                        >{{ $t('views.document.syncDocument') }}
+                      </el-dropdown-item>
+                      <el-dropdown-item
+                        divided
+                        @click="syncLarkMulDocument"
+                        :disabled="multipleSelection.length === 0"
+                        v-if="knowledgeDetail?.type === 2 && permissionPrecise.doc_sync(id)"
+                        >{{ $t('views.document.syncDocument') }}
+                      </el-dropdown-item>
+                      <el-dropdown-item
+                        divided
+                        @click="deleteMulDocument"
+                        :disabled="multipleSelection.length === 0"
+                        v-if="permissionPrecise.doc_delete(id)"
+                        >{{ $t('common.delete') }}
+                      </el-dropdown-item>
+                    </el-dropdown-menu>
+                  </template>
+                </el-dropdown>
+              </template>
+            </div>
+
+            <el-input
+              v-model="filterText"
+              :placeholder="$t('common.searchBar.placeholder')"
+              prefix-icon="Search"
+              class="w-240"
+              @change="getList"
+              clearable
+            />
           </div>
-
-          <el-input
-            v-model="filterText"
-            :placeholder="$t('views.document.searchBar.placeholder')"
-            prefix-icon="Search"
-            class="w-240"
-            @change="getList"
-            clearable
-          />
-        </div>
-        <app-table
-          ref="multipleTableRef"
-          class="mt-16"
-          :data="documentData"
-          :pagination-config="paginationConfig"
-          :quick-create="datasetDetail.type === '0'"
-          @sizeChange="handleSizeChange"
-          @changePage="getList"
-          @cell-mouse-enter="cellMouseEnter"
-          @cell-mouse-leave="cellMouseLeave"
-          @creatQuick="creatQuickHandle"
-          @row-click="rowClickHandle"
-          @selection-change="handleSelectionChange"
-          @sort-change="handleSortChange"
-          v-loading="loading"
-          :row-key="(row: any) => row.id"
-          :storeKey="storeKey"
-        >
-          <el-table-column type="selection" width="55" :reserve-selection="true" />
-          <el-table-column prop="name" :label="$t('views.document.table.name')" min-width="280">
-            <template #default="{ row }">
-              <ReadWrite
-                @change="editName($event, row.id)"
-                :data="row.name"
-                :showEditIcon="row.id === currentMouseId"
-              />
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="char_length"
-            :label="$t('views.document.table.char_length')"
-            align="right"
-            min-width="90"
-            sortable
+          <app-table
+            ref="multipleTableRef"
+            class="mt-16 document-table"
+            :data="documentData"
+            :pagination-config="paginationConfig"
+            :quick-create="
+              knowledgeDetail?.type === 0 && permissionPrecise.doc_create(id) && !isShared
+            "
+            @sizeChange="handleSizeChange"
+            @changePage="getList"
+            @cell-mouse-enter="cellMouseEnter"
+            @cell-mouse-leave="cellMouseLeave"
+            @creatQuick="creatQuickHandle"
+            @row-click="rowClickHandle"
+            @selection-change="handleSelectionChange"
+            @sort-change="handleSortChange"
+            v-loading="loading"
+            :row-key="(row: any) => row.id"
+            :storeKey="storeKey"
           >
-            <template #default="{ row }">
-              {{ numberFormat(row.char_length) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="paragraph_count"
-            :label="$t('views.document.table.paragraph')"
-            align="right"
-            min-width="90"
-            sortable
-          />
-          <el-table-column prop="status" :label="$t('views.document.fileStatus.label')" width="130">
-            <template #header>
-              <div>
-                <span>{{ $t('views.document.fileStatus.label') }}</span>
-                <el-dropdown trigger="click" @command="dropdownHandle">
-                  <el-button
-                    style="margin-top: 1px"
-                    link
-                    :type="filterMethod['status'] ? 'primary' : ''"
-                  >
-                    <el-icon>
-                      <Filter />
-                    </el-icon>
-                  </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu style="width: 100px">
-                      <el-dropdown-item
-                        :class="filterMethod['status'] ? '' : 'is-active'"
-                        :command="beforeCommand('status', '')"
-                        class="justify-center"
-                        >{{ $t('views.document.table.all') }}
-                      </el-dropdown-item>
-                      <el-dropdown-item
-                        :class="filterMethod['status'] === State.SUCCESS ? 'is-active' : ''"
-                        class="justify-center"
-                        :command="beforeCommand('status', State.SUCCESS)"
-                        >{{ $t('views.document.fileStatus.SUCCESS') }}
-                      </el-dropdown-item>
-                      <el-dropdown-item
-                        :class="filterMethod['status'] === State.FAILURE ? 'is-active' : ''"
-                        class="justify-center"
-                        :command="beforeCommand('status', State.FAILURE)"
-                        >{{ $t('views.document.fileStatus.FAILURE') }}
-                      </el-dropdown-item>
-                      <el-dropdown-item
-                        :class="
-                          filterMethod['status'] === State.STARTED &&
-                          filterMethod['task_type'] == TaskType.EMBEDDING
-                            ? 'is-active'
-                            : ''
-                        "
-                        class="justify-center"
-                        :command="beforeCommand('status', State.STARTED, TaskType.EMBEDDING)"
-                        >{{ $t('views.document.fileStatus.EMBEDDING') }}
-                      </el-dropdown-item>
-                      <el-dropdown-item
-                        :class="filterMethod['status'] === State.PENDING ? 'is-active' : ''"
-                        class="justify-center"
-                        :command="beforeCommand('status', State.PENDING)"
-                        >{{ $t('views.document.fileStatus.PENDING') }}
-                      </el-dropdown-item>
-                      <el-dropdown-item
-                        :class="
-                          filterMethod['status'] === State.STARTED &&
-                          filterMethod['task_type'] === TaskType.GENERATE_PROBLEM
-                            ? 'is-active'
-                            : ''
-                        "
-                        class="justify-center"
-                        :command="beforeCommand('status', State.STARTED, TaskType.GENERATE_PROBLEM)"
-                        >{{ $t('views.document.fileStatus.GENERATE') }}
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </div>
-            </template>
-            <template #default="{ row }">
-              <StatusVlue :status="row.status" :status-meta="row.status_meta"></StatusVlue>
-            </template>
-          </el-table-column>
-          <el-table-column width="130">
-            <template #header>
-              <div>
-                <span>{{ $t('views.document.enableStatus.label') }}</span>
-                <el-dropdown trigger="click" @command="dropdownHandle">
-                  <el-button
-                    style="margin-top: 1px"
-                    link
-                    :type="filterMethod['is_active'] ? 'primary' : ''"
-                  >
-                    <el-icon>
-                      <Filter />
-                    </el-icon>
-                  </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu style="width: 100px">
-                      <el-dropdown-item
-                        :class="filterMethod['is_active'] === '' ? 'is-active' : ''"
-                        :command="beforeCommand('is_active', '')"
-                        class="justify-center"
-                        >{{ $t('views.document.table.all') }}
-                      </el-dropdown-item>
-                      <el-dropdown-item
-                        :class="filterMethod['is_active'] === true ? 'is-active' : ''"
-                        class="justify-center"
-                        :command="beforeCommand('is_active', true)"
-                        >{{ $t('views.document.enableStatus.enable') }}
-                      </el-dropdown-item>
-                      <el-dropdown-item
-                        :class="filterMethod['is_active'] === false ? 'is-active' : ''"
-                        class="justify-center"
-                        :command="beforeCommand('is_active', false)"
-                        >{{ $t('views.document.enableStatus.close') }}
-                      </el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </div>
-            </template>
-            <template #default="{ row }">
-              <div @click.stop>
-                <el-switch
-                  :loading="loading"
-                  size="small"
-                  v-model="row.is_active"
-                  :before-change="() => changeState(row)"
+            <el-table-column
+              type="selection"
+              width="55"
+              :reserve-selection="true"
+              v-if="!isShared"
+            />
+            <el-table-column prop="name" :label="$t('views.document.table.name')" min-width="280">
+              <template #default="{ row }">
+                <ReadWrite
+                  v-if="!isShared"
+                  @change="editName($event, row.id)"
+                  :data="row.name"
+                  :showEditIcon="row.id === currentMouseId"
                 />
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column width="170">
-            <template #header>
-              <div>
-                <span>{{ $t('views.document.form.hit_handling_method.label') }}</span>
-                <el-dropdown trigger="click" @command="dropdownHandle">
-                  <el-button
-                    style="margin-top: 1px"
-                    link
-                    :type="filterMethod['hit_handling_method'] ? 'primary' : ''"
-                  >
-                    <el-icon>
-                      <Filter />
-                    </el-icon>
-                  </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu style="width: 150px">
-                      <el-dropdown-item
-                        :class="filterMethod['hit_handling_method'] ? '' : 'is-active'"
-                        :command="beforeCommand('hit_handling_method', '')"
-                        class="justify-center"
-                        >{{ $t('views.document.table.all') }}
-                      </el-dropdown-item>
-                      <template v-for="(value, key) of hitHandlingMethod" :key="key">
+                <span v-else>{{ row.name }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="status"
+              :label="$t('views.document.fileStatus.label')"
+              width="130"
+            >
+              <template #header>
+                <div>
+                  <span>{{ $t('views.document.fileStatus.label') }}</span>
+                  <el-dropdown trigger="click" @command="dropdownHandle">
+                    <el-button
+                      style="margin-top: 1px"
+                      link
+                      :type="filterMethod['status'] ? 'primary' : ''"
+                    >
+                      <el-icon>
+                        <Filter />
+                      </el-icon>
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu style="width: 100px">
                         <el-dropdown-item
-                          :class="filterMethod['hit_handling_method'] === key ? 'is-active' : ''"
+                          :class="filterMethod['status'] ? '' : 'is-active'"
+                          :command="beforeCommand('status', '')"
                           class="justify-center"
-                          :command="beforeCommand('hit_handling_method', key)"
-                          >{{ $t(value) }}
+                          >{{ $t('views.document.table.all') }}
                         </el-dropdown-item>
+                        <el-dropdown-item
+                          :class="filterMethod['status'] === State.SUCCESS ? 'is-active' : ''"
+                          class="justify-center"
+                          :command="beforeCommand('status', State.SUCCESS)"
+                          >{{ $t('views.document.fileStatus.SUCCESS') }}
+                        </el-dropdown-item>
+                        <el-dropdown-item
+                          :class="filterMethod['status'] === State.FAILURE ? 'is-active' : ''"
+                          class="justify-center"
+                          :command="beforeCommand('status', State.FAILURE)"
+                          >{{ $t('views.document.fileStatus.FAILURE') }}
+                        </el-dropdown-item>
+                        <el-dropdown-item
+                          :class="
+                            filterMethod['status'] === State.STARTED &&
+                            filterMethod['task_type'] == TaskType.EMBEDDING
+                              ? 'is-active'
+                              : ''
+                          "
+                          class="justify-center"
+                          :command="beforeCommand('status', State.STARTED, TaskType.EMBEDDING)"
+                          >{{ $t('views.document.fileStatus.EMBEDDING') }}
+                        </el-dropdown-item>
+                        <el-dropdown-item
+                          :class="filterMethod['status'] === State.PENDING ? 'is-active' : ''"
+                          class="justify-center"
+                          :command="beforeCommand('status', State.PENDING)"
+                          >{{ $t('views.document.fileStatus.PENDING') }}
+                        </el-dropdown-item>
+                        <el-dropdown-item
+                          :class="
+                            filterMethod['status'] === State.STARTED &&
+                            filterMethod['task_type'] === TaskType.GENERATE_PROBLEM
+                              ? 'is-active'
+                              : ''
+                          "
+                          class="justify-center"
+                          :command="
+                            beforeCommand('status', State.STARTED, TaskType.GENERATE_PROBLEM)
+                          "
+                          >{{ $t('views.document.fileStatus.GENERATE') }}
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </div>
+              </template>
+              <template #default="{ row }">
+                <StatusValue :status="row.status" :status-meta="row.status_meta"></StatusValue>
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="char_length"
+              :label="$t('views.document.table.char_length')"
+              align="right"
+              min-width="90"
+              sortable
+            >
+              <template #default="{ row }">
+                {{ numberFormat(row.char_length) }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="paragraph_count"
+              :label="$t('views.document.table.paragraph')"
+              align="right"
+              min-width="90"
+              sortable
+            />
+
+            <el-table-column width="130">
+              <template #header>
+                <div>
+                  <span>{{ $t('views.document.enableStatus.label') }}</span>
+                  <el-dropdown trigger="click" @command="dropdownHandle">
+                    <el-button
+                      style="margin-top: 1px"
+                      link
+                      :type="filterMethod['is_active'] ? 'primary' : ''"
+                    >
+                      <el-icon>
+                        <Filter />
+                      </el-icon>
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu style="width: 100px">
+                        <el-dropdown-item
+                          :class="filterMethod['is_active'] === '' ? 'is-active' : ''"
+                          :command="beforeCommand('is_active', '')"
+                          class="justify-center"
+                          >{{ $t('views.document.table.all') }}
+                        </el-dropdown-item>
+                        <el-dropdown-item
+                          :class="filterMethod['is_active'] === true ? 'is-active' : ''"
+                          class="justify-center"
+                          :command="beforeCommand('is_active', true)"
+                          >{{ $t('views.document.enableStatus.enable') }}
+                        </el-dropdown-item>
+                        <el-dropdown-item
+                          :class="filterMethod['is_active'] === false ? 'is-active' : ''"
+                          class="justify-center"
+                          :command="beforeCommand('is_active', false)"
+                          >{{ $t('views.document.enableStatus.close') }}
+                        </el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </div>
+              </template>
+              <template #default="{ row }">
+                <div v-if="row.is_active" class="flex align-center">
+                  <el-icon class="color-success mr-8" style="font-size: 16px">
+                    <SuccessFilled />
+                  </el-icon>
+                  <span class="color-text-primary">
+                    {{ $t('common.status.enabled') }}
+                  </span>
+                </div>
+                <div v-else class="flex align-center">
+                  <AppIcon iconName="app-disabled" class="color-secondary mr-8"></AppIcon>
+                  <span class="color-text-primary">
+                    {{ $t('common.status.disabled') }}
+                  </span>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column width="170">
+              <template #header>
+                <div>
+                  <span>{{ $t('views.document.form.hit_handling_method.label') }}</span>
+                  <el-dropdown trigger="click" @command="dropdownHandle">
+                    <el-button
+                      style="margin-top: 1px"
+                      link
+                      :type="filterMethod['hit_handling_method'] ? 'primary' : ''"
+                    >
+                      <el-icon>
+                        <Filter />
+                      </el-icon>
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu style="width: 150px">
+                        <el-dropdown-item
+                          :class="filterMethod['hit_handling_method'] ? '' : 'is-active'"
+                          :command="beforeCommand('hit_handling_method', '')"
+                          class="justify-center"
+                          >{{ $t('views.document.table.all') }}
+                        </el-dropdown-item>
+                        <template v-for="(value, key) of hitHandlingMethod" :key="key">
+                          <el-dropdown-item
+                            :class="filterMethod['hit_handling_method'] === key ? 'is-active' : ''"
+                            class="justify-center"
+                            :command="beforeCommand('hit_handling_method', key)"
+                            >{{ $t(value) }}
+                          </el-dropdown-item>
+                        </template>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
+                </div>
+              </template>
+              <template #default="{ row }">
+                {{
+                  $t(hitHandlingMethod[row.hit_handling_method as keyof typeof hitHandlingMethod])
+                }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="create_time"
+              :label="$t('common.createTime')"
+              width="175"
+              sortable
+            >
+              <template #default="{ row }">
+                {{ datetimeFormat(row.create_time) }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="update_time"
+              :label="$t('views.document.table.updateTime')"
+              width="175"
+              sortable
+            >
+              <template #default="{ row }">
+                {{ datetimeFormat(row.update_time) }}
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="$t('common.operation')"
+              align="left"
+              width="160"
+              fixed="right"
+              v-if="!isShared"
+            >
+              <template #default="{ row }">
+                <span @click.stop>
+                  <el-switch
+                    :loading="loading"
+                    size="small"
+                    v-model="row.is_active"
+                    :before-change="() => changeState(row)"
+                    v-if="permissionPrecise.doc_edit(id)"
+                  />
+                </span>
+                <el-divider direction="vertical" />
+                <template v-if="knowledgeDetail?.type === 0">
+                  <el-tooltip
+                    effect="dark"
+                    :content="$t('views.document.setting.cancelVectorization')"
+                    placement="top"
+                    v-if="
+                      ([State.STARTED, State.PENDING] as Array<string>).includes(
+                        getTaskState(row.status, TaskType.EMBEDDING),
+                      )
+                    "
+                  >
+                    <span class="mr-4">
+                      <el-button
+                        type="primary"
+                        text
+                        @click.stop="cancelTask(row, TaskType.EMBEDDING)"
+                        v-if="permissionPrecise.doc_vector(id)"
+                      >
+                        <el-icon><Close /></el-icon>
+                      </el-button>
+                    </span>
+                  </el-tooltip>
+                  <el-tooltip
+                    effect="dark"
+                    :content="$t('views.knowledge.setting.vectorization')"
+                    placement="top"
+                    v-else
+                  >
+                    <span class="mr-4" v-if="permissionPrecise.doc_vector(id)">
+                      <el-button type="primary" text @click.stop="refreshDocument(row)">
+                        <AppIcon iconName="app-document-refresh" style="font-size: 16px"></AppIcon>
+                      </el-button>
+                    </span>
+                  </el-tooltip>
+                  <el-tooltip
+                    effect="dark"
+                    :content="$t('common.setting')"
+                    placement="top"
+                    v-if="permissionPrecise.doc_edit(id)"
+                  >
+                    <span class="mr-4">
+                      <el-button type="primary" text @click.stop="settingDoc(row)">
+                        <AppIcon iconName="app-setting"></AppIcon>
+                      </el-button>
+                    </span>
+                  </el-tooltip>
+                  <span @click.stop>
+                    <el-dropdown trigger="click" v-if="MoreFilledPermission1(id)">
+                      <el-button text type="primary">
+                        <AppIcon iconName="app-more"></AppIcon>
+                      </el-button>
+                      <template #dropdown>
+                        <el-dropdown-menu>
+                          <el-dropdown-item
+                            v-if="
+                              ([State.STARTED, State.PENDING] as Array<string>).includes(
+                                getTaskState(row.status, TaskType.GENERATE_PROBLEM),
+                              ) && permissionPrecise.doc_generate(id)
+                            "
+                            @click="cancelTask(row, TaskType.GENERATE_PROBLEM)"
+                          >
+                            <el-icon class="color-secondary"><Close /></el-icon>
+                            {{ $t('views.document.setting.cancelGenerateQuestion') }}
+                          </el-dropdown-item>
+                          <el-dropdown-item
+                            @click="openGenerateDialog(row)"
+                            v-else-if="permissionPrecise.doc_generate(id)"
+                          >
+                            <AppIcon
+                              iconName="app-generate-question"
+                              class="color-secondary"
+                            ></AppIcon>
+                            {{ $t('views.document.generateQuestion.title') }}
+                          </el-dropdown-item>
+                          <el-dropdown-item
+                            @click="openknowledgeDialog(row)"
+                            v-if="permissionPrecise.doc_migrate(id)"
+                          >
+                            <AppIcon iconName="app-migrate" class="color-secondary"></AppIcon>
+                            {{ $t('views.document.setting.migration') }}
+                          </el-dropdown-item>
+                          <el-dropdown-item
+                            @click="exportDocument(row)"
+                            v-if="permissionPrecise.doc_export(id)"
+                          >
+                            <AppIcon iconName="app-export" class="color-secondary"></AppIcon>
+                            {{ $t('views.document.setting.export') }} Excel
+                          </el-dropdown-item>
+                          <el-dropdown-item
+                            @click="exportDocumentZip(row)"
+                            v-if="permissionPrecise.doc_export(id)"
+                          >
+                            <AppIcon iconName="app-export" class="color-secondary"></AppIcon>
+                            {{ $t('views.document.setting.export') }} Zip
+                          </el-dropdown-item>
+                          <el-dropdown-item
+                            @click.stop="downloadDocument(row)"
+                            v-if="permissionPrecise.doc_download(id)"
+                          >
+                            <el-icon class="color-secondary">
+                              <Download />
+                            </el-icon>
+                            {{ $t('views.document.setting.download') }}
+                          </el-dropdown-item>
+                          <el-dropdown-item
+                            @click.stop="deleteDocument(row)"
+                            v-if="permissionPrecise.doc_delete(id)"
+                          >
+                            <AppIcon iconName="app-delete" class="color-secondary"></AppIcon>
+                            {{ $t('common.delete') }}</el-dropdown-item
+                          >
+                        </el-dropdown-menu>
                       </template>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </div>
-            </template>
-            <template #default="{ row }">
-              {{ $t(hitHandlingMethod[row.hit_handling_method as keyof typeof hitHandlingMethod]) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="create_time" :label="$t('common.createTime')" width="175" sortable>
-            <template #default="{ row }">
-              {{ datetimeFormat(row.create_time) }}
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="update_time"
-            :label="$t('views.document.table.updateTime')"
-            width="175"
-            sortable
-          >
-            <template #default="{ row }">
-              {{ datetimeFormat(row.update_time) }}
-            </template>
-          </el-table-column>
-          <el-table-column :label="$t('common.operation')" align="left" width="110" fixed="right">
-            <template #default="{ row }">
-              <div v-if="datasetDetail.type === '0'">
-                <span class="mr-4">
+                    </el-dropdown>
+                  </span>
+                </template>
+                <template v-if="knowledgeDetail?.type === 1 || knowledgeDetail?.type === 2">
                   <el-tooltip
                     effect="dark"
-                    v-if="
-                      ([State.STARTED, State.PENDING] as Array<string>).includes(
-                        getTaskState(row.status, TaskType.EMBEDDING)
-                      )
-                    "
                     :content="$t('views.document.setting.cancelVectorization')"
                     placement="top"
-                  >
-                    <el-button
-                      type="primary"
-                      text
-                      @click.stop="cancelTask(row, TaskType.EMBEDDING)"
-                    >
-                      <AppIcon iconName="app-close" style="font-size: 16px"></AppIcon>
-                    </el-button>
-                  </el-tooltip>
-                  <el-tooltip
-                    v-else
-                    effect="dark"
-                    :content="$t('views.dataset.setting.vectorization')"
-                    placement="top"
-                  >
-                    <el-button type="primary" text @click.stop="refreshDocument(row)">
-                      <AppIcon iconName="app-document-refresh" style="font-size: 16px"></AppIcon>
-                    </el-button>
-                  </el-tooltip>
-                </span>
-                <span class="mr-4">
-                  <el-tooltip effect="dark" :content="$t('common.setting')" placement="top">
-                    <el-button type="primary" text @click.stop="settingDoc(row)">
-                      <el-icon><Setting /></el-icon>
-                    </el-button>
-                  </el-tooltip>
-                </span>
-                <span @click.stop>
-                  <el-dropdown trigger="click">
-                    <el-button text type="primary">
-                      <el-icon><MoreFilled /></el-icon>
-                    </el-button>
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item
-                          v-if="
-                            ([State.STARTED, State.PENDING] as Array<string>).includes(
-                              getTaskState(row.status, TaskType.GENERATE_PROBLEM)
-                            )
-                          "
-                          @click="cancelTask(row, TaskType.GENERATE_PROBLEM)"
-                        >
-                          <el-icon><Connection /></el-icon>
-                          {{ $t('views.document.setting.cancelGenerateQuestion') }}
-                        </el-dropdown-item>
-                        <el-dropdown-item v-else @click="openGenerateDialog(row)">
-                          <el-icon><Connection /></el-icon>
-                          {{ $t('views.document.generateQuestion.title') }}
-                        </el-dropdown-item>
-                        <el-dropdown-item @click="openDatasetDialog(row)">
-                          <AppIcon iconName="app-migrate"></AppIcon>
-                          {{ $t('views.document.setting.migration') }}
-                        </el-dropdown-item>
-                        <el-dropdown-item @click="exportDocument(row)">
-                          <AppIcon iconName="app-export"></AppIcon>
-                          {{ $t('views.document.setting.export') }} Excel
-                        </el-dropdown-item>
-                        <el-dropdown-item @click="exportDocumentZip(row)">
-                          <AppIcon iconName="app-export"></AppIcon>
-                          {{ $t('views.document.setting.export') }} Zip
-                        </el-dropdown-item>
-                        <el-dropdown-item icon="Delete" @click.stop="deleteDocument(row)">{{
-                          $t('common.delete')
-                        }}</el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
-                </span>
-              </div>
-              <div v-if="datasetDetail.type === '1' || datasetDetail.type === '2'">
-                <span class="mr-4">
-                  <el-tooltip
-                    effect="dark"
-                    :content="$t('views.dataset.setting.sync')"
-                    placement="top"
-                  >
-                    <el-button type="primary" text @click.stop="syncDocument(row)">
-                      <el-icon><Refresh /></el-icon>
-                    </el-button>
-                  </el-tooltip>
-                </span>
-                <span class="mr-4">
-                  <el-tooltip
-                    effect="dark"
                     v-if="
                       ([State.STARTED, State.PENDING] as Array<string>).includes(
-                        getTaskState(row.status, TaskType.EMBEDDING)
-                      )
+                        getTaskState(row.status, TaskType.EMBEDDING),
+                      ) && permissionPrecise.doc_vector(id)
                     "
-                    :content="$t('views.document.setting.cancelVectorization')"
-                    placement="top"
                   >
-                    <el-button
-                      type="primary"
-                      text
-                      @click.stop="cancelTask(row, TaskType.EMBEDDING)"
-                    >
-                      <AppIcon iconName="app-close" style="font-size: 16px"></AppIcon>
-                    </el-button>
+                    <span class="mr-4">
+                      <el-button
+                        type="primary"
+                        text
+                        @click.stop="cancelTask(row, TaskType.EMBEDDING)"
+                      >
+                        <el-icon><Close /></el-icon>
+                      </el-button>
+                    </span>
                   </el-tooltip>
-
                   <el-tooltip
                     effect="dark"
-                    v-else
-                    :content="$t('views.dataset.setting.vectorization')"
+                    :content="$t('views.knowledge.setting.vectorization')"
                     placement="top"
+                    v-if="permissionPrecise.vector(id)"
                   >
-                    <el-button type="primary" text @click.stop="refreshDocument(row)">
-                      <AppIcon iconName="app-document-refresh" style="font-size: 16px"></AppIcon>
-                    </el-button>
+                    <span class="mr-4">
+                      <el-button type="primary" text @click.stop="refreshDocument(row)">
+                        <AppIcon iconName="app-document-refresh" style="font-size: 16px"></AppIcon>
+                      </el-button>
+                    </span>
                   </el-tooltip>
-                </span>
-
-                <span @click.stop>
-                  <el-dropdown trigger="click">
-                    <el-button text type="primary">
-                      <el-icon><MoreFilled /></el-icon>
-                    </el-button>
-                    <template #dropdown>
-                      <el-dropdown-menu>
-                        <el-dropdown-item icon="Setting" @click="settingDoc(row)">{{
-                          $t('common.setting')
-                        }}</el-dropdown-item>
-                        <el-dropdown-item
-                          v-if="
-                            ([State.STARTED, State.PENDING] as Array<string>).includes(
-                              getTaskState(row.status, TaskType.GENERATE_PROBLEM)
-                            )
-                          "
-                          @click="cancelTask(row, TaskType.GENERATE_PROBLEM)"
-                        >
-                          <el-icon><Connection /></el-icon>
-                          {{ $t('views.document.setting.cancelGenerateQuestion') }}
-                        </el-dropdown-item>
-                        <el-dropdown-item v-else @click="openGenerateDialog(row)">
-                          <el-icon><Connection /></el-icon>
-                          {{ $t('views.document.generateQuestion.title') }}
-                        </el-dropdown-item>
-                        <el-dropdown-item @click="openDatasetDialog(row)">
-                          <AppIcon iconName="app-migrate"></AppIcon>
-                          {{ $t('views.document.setting.migration') }}</el-dropdown-item
-                        >
-                        <el-dropdown-item @click="exportDocument(row)">
-                          <AppIcon iconName="app-export"></AppIcon>
-                          {{ $t('views.document.setting.export') }} Excel
-                        </el-dropdown-item>
-                        <el-dropdown-item @click="exportDocumentZip(row)">
-                          <AppIcon iconName="app-export"></AppIcon>
-                          {{ $t('views.document.setting.export') }} Zip
-                        </el-dropdown-item>
-                        <el-dropdown-item icon="Delete" @click.stop="deleteDocument(row)">{{
-                          $t('common.delete')
-                        }}</el-dropdown-item>
-                      </el-dropdown-menu>
-                    </template>
-                  </el-dropdown>
-                </span>
-              </div>
-            </template>
-          </el-table-column>
-        </app-table>
+                  <el-tooltip
+                    effect="dark"
+                    :content="$t('common.setting')"
+                    placement="top"
+                    v-if="permissionPrecise.doc_edit(id)"
+                  >
+                    <span class="mr-4">
+                      <el-button type="primary" text @click.stop="settingDoc(row)">
+                        <AppIcon iconName="app-setting"></AppIcon>
+                      </el-button>
+                    </span>
+                  </el-tooltip>
+                  <span @click.stop>
+                    <el-dropdown trigger="click" v-if="MoreFilledPermission2(id)">
+                      <el-button text type="primary">
+                        <AppIcon iconName="app-more"></AppIcon>
+                      </el-button>
+                      <template #dropdown>
+                        <el-dropdown-menu>
+                          <el-dropdown-item
+                            @click="syncDocument(row)"
+                            v-if="permissionPrecise.sync(id)"
+                          >
+                            <AppIcon iconName="app-sync" class="color-secondary"></AppIcon>
+                            {{ $t('views.knowledge.setting.sync') }}</el-dropdown-item
+                          >
+                          <el-dropdown-item
+                            v-if="
+                              permissionPrecise.doc_generate(id) &&
+                              ([State.STARTED, State.PENDING] as Array<string>).includes(
+                                getTaskState(row.status, TaskType.GENERATE_PROBLEM),
+                              )
+                            "
+                            @click="cancelTask(row, TaskType.GENERATE_PROBLEM)"
+                          >
+                            <el-icon class="color-secondary"><Close /></el-icon>
+                            {{ $t('views.document.setting.cancelGenerateQuestion') }}
+                          </el-dropdown-item>
+                          <el-dropdown-item
+                            @click="openGenerateDialog(row)"
+                            v-else-if="permissionPrecise.doc_generate(id)"
+                          >
+                            <AppIcon
+                              iconName="app-generate-question"
+                              class="color-secondary"
+                            ></AppIcon>
+                            {{ $t('views.document.generateQuestion.title') }}
+                          </el-dropdown-item>
+                          <el-dropdown-item
+                            @click="openknowledgeDialog(row)"
+                            v-if="permissionPrecise.doc_migrate(id)"
+                          >
+                            <AppIcon iconName="app-migrate" class="color-secondary"></AppIcon>
+                            {{ $t('views.document.setting.migration') }}
+                          </el-dropdown-item>
+                          <el-dropdown-item
+                            @click="exportDocument(row)"
+                            v-if="permissionPrecise.doc_export(id)"
+                          >
+                            <AppIcon iconName="app-export" class="color-secondary"></AppIcon>
+                            {{ $t('views.document.setting.export') }} Excel
+                          </el-dropdown-item>
+                          <el-dropdown-item
+                            @click="exportDocumentZip(row)"
+                            v-if="permissionPrecise.doc_export(id)"
+                          >
+                            <AppIcon iconName="app-export" class="color-secondary"></AppIcon>
+                            {{ $t('views.document.setting.export') }} Zip
+                          </el-dropdown-item>
+                          <el-dropdown-item
+                            @click.stop="deleteDocument(row)"
+                            v-if="permissionPrecise.doc_delete(id)"
+                          >
+                            <AppIcon iconName="app-delete" class="color-secondary"></AppIcon>
+                            {{ $t('common.delete') }}
+                          </el-dropdown-item>
+                        </el-dropdown-menu>
+                      </template>
+                    </el-dropdown>
+                  </span>
+                </template>
+              </template>
+            </el-table-column>
+          </app-table>
+        </div>
       </div>
-
-      <ImportDocumentDialog ref="ImportDocumentDialogRef" :title="title" @refresh="refresh" />
-      <SyncWebDialog ref="SyncWebDialogRef" @refresh="refresh" />
-      <!-- 选择知识库 -->
-      <SelectDatasetDialog ref="SelectDatasetDialogRef" @refresh="refreshMigrate" />
-      <GenerateRelatedDialog ref="GenerateRelatedDialogRef" @refresh="getList" />
-    </div>
+    </el-card>
     <div class="mul-operation w-full flex" v-if="multipleSelection.length !== 0">
-      <el-button :disabled="multipleSelection.length === 0" @click="cancelTaskHandle(1)">
+      <el-button
+        :disabled="multipleSelection.length === 0"
+        @click="cancelTaskHandle(1)"
+        v-if="permissionPrecise.doc_vector(id)"
+      >
         {{ $t('views.document.setting.cancelVectorization') }}
       </el-button>
-      <el-button :disabled="multipleSelection.length === 0" @click="cancelTaskHandle(2)">
+      <el-button
+        :disabled="multipleSelection.length === 0"
+        @click="cancelTaskHandle(2)"
+        v-if="permissionPrecise.doc_generate(id)"
+      >
         {{ $t('views.document.setting.cancelGenerate') }}
       </el-button>
       <el-text type="info" class="secondary ml-24">
-        {{ $t('views.document.selected') }} {{ multipleSelection.length }}
+        {{ $t('common.selected') }} {{ multipleSelection.length }}
         {{ $t('views.document.items') }}
       </el-text>
       <el-button class="ml-16" type="primary" link @click="clearSelection">
         {{ $t('common.clear') }}
       </el-button>
     </div>
+
     <EmbeddingContentDialog ref="embeddingContentDialogRef"></EmbeddingContentDialog>
-  </LayoutContainer>
+
+    <ImportDocumentDialog ref="ImportDocumentDialogRef" :title="title" @refresh="refresh" />
+    <SyncWebDialog ref="SyncWebDialogRef" @refresh="refresh" />
+    <!-- 选择知识库 -->
+    <SelectKnowledgeDialog
+      ref="selectKnowledgeDialogRef"
+      @refresh="refreshMigrate"
+      :workspaceId="knowledgeDetail?.workspace_id"
+    />
+    <GenerateRelatedDialog ref="GenerateRelatedDialogRef" @refresh="getList" :apiType="apiType" />
+  </div>
 </template>
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter, useRoute, onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { ElTable } from 'element-plus'
-import documentApi from '@/api/document'
 import ImportDocumentDialog from './component/ImportDocumentDialog.vue'
-import SyncWebDialog from '@/views/dataset/component/SyncWebDialog.vue'
-import SelectDatasetDialog from './component/SelectDatasetDialog.vue'
-import { numberFormat } from '@/utils/utils'
+import SyncWebDialog from '@/views/knowledge/component/SyncWebDialog.vue'
+import SelectKnowledgeDialog from './component/SelectKnowledgeDialog.vue'
+import { numberFormat } from '@/utils/common'
 import { datetimeFormat } from '@/utils/time'
 import { hitHandlingMethod } from '@/enums/document'
 import { MsgSuccess, MsgConfirm, MsgError } from '@/utils/message'
 import useStore from '@/stores'
-import StatusVlue from '@/views/document/component/Status.vue'
+import StatusValue from '@/views/document/component/Status.vue'
 import GenerateRelatedDialog from '@/components/generate-related-dialog/index.vue'
 import EmbeddingContentDialog from '@/views/document/component/EmbeddingContentDialog.vue'
 import { TaskType, State } from '@/utils/status'
 import { t } from '@/locales'
+import permissionMap from '@/permission'
+import { loadSharedApi } from '@/utils/dynamics-api/shared-api'
 
-const router = useRouter()
 const route = useRoute()
+const router = useRouter()
 const {
-  params: { id } // id为datasetID
+  params: { id, folderId }, // id为knowledgeID
 } = route as any
-
-const { common, dataset, document } = useStore()
+const { common } = useStore()
 const storeKey = 'documents'
-const getTaskState = (status: string, taskType: number) => {
-  const statusList = status.split('').reverse()
-  return taskType - 1 > statusList.length + 1 ? 'n' : statusList[taskType - 1]
-}
 onBeforeRouteUpdate(() => {
   common.savePage(storeKey, null)
   common.saveCondition(storeKey, null)
@@ -525,10 +685,64 @@ onBeforeRouteLeave((to: any) => {
   } else {
     common.saveCondition(storeKey, {
       filterText: filterText.value,
-      filterMethod: filterMethod.value
+      filterMethod: filterMethod.value,
     })
   }
 })
+
+const isShared = computed(() => {
+  return folderId === 'share'
+})
+
+const apiType = computed(() => {
+  if (route.path.includes('shared')) {
+    return 'systemShare'
+  } else if (route.path.includes('resource-management')) {
+    return 'systemManage'
+  } else if (route.path.includes('share/')) {
+    return 'workspaceShare'
+  } else {
+    return 'workspace'
+  }
+})
+const permissionPrecise = computed(() => {
+  return permissionMap['knowledge'][apiType.value]
+})
+
+const MoreFilledPermission0 = (id: string) => {
+  return (
+    permissionPrecise.value.doc_migrate(id) ||
+    (knowledgeDetail?.value.type === 1 && permissionPrecise.value.doc_sync(id)) ||
+    (knowledgeDetail?.value.type === 2 && permissionPrecise.value.doc_sync(id)) ||
+    permissionPrecise.value.doc_delete(id)
+  )
+}
+
+const MoreFilledPermission1 = (id: string) => {
+  return (
+    permissionPrecise.value.doc_generate(id) ||
+    permissionPrecise.value.doc_migrate(id) ||
+    permissionPrecise.value.doc_export(id) ||
+    permissionPrecise.value.doc_download(id) ||
+    permissionPrecise.value.doc_delete(id)
+  )
+}
+
+const MoreFilledPermission2 = (id: string) => {
+  return (
+    permissionPrecise.value.sync(id) ||
+    permissionPrecise.value.doc_generate(id) ||
+    permissionPrecise.value.doc_migrate(id) ||
+    permissionPrecise.value.doc_export(id) ||
+    permissionPrecise.value.doc_delete(id)
+  )
+}
+
+const getTaskState = (status: string, taskType: number) => {
+  const statusList = status.split('').reverse()
+  return taskType - 1 > statusList.length + 1 ? 'n' : statusList[taskType - 1]
+}
+
 const beforePagination = computed(() => common.paginationConfig[storeKey])
 const beforeSearch = computed(() => common.search[storeKey])
 const embeddingContentDialogRef = ref<InstanceType<typeof EmbeddingContentDialog>>()
@@ -540,12 +754,12 @@ const filterMethod = ref<any>({})
 const orderBy = ref<string>('')
 const documentData = ref<any[]>([])
 const currentMouseId = ref(null)
-const datasetDetail = ref<any>({})
+const knowledgeDetail = ref<any>({})
 
 const paginationConfig = ref({
   current_page: 1,
   page_size: 10,
-  total: 0
+  total: 0,
 })
 
 const ImportDocumentDialogRef = ref()
@@ -553,16 +767,18 @@ const multipleTableRef = ref<InstanceType<typeof ElTable>>()
 const multipleSelection = ref<any[]>([])
 const title = ref('')
 
-const SelectDatasetDialogRef = ref()
+const selectKnowledgeDialogRef = ref()
 
 const exportDocument = (document: any) => {
-  documentApi.exportDocument(document.name, document.dataset_id, document.id, loading).then(() => {
-    MsgSuccess(t('common.exportSuccess'))
-  })
+  loadSharedApi({ type: 'document', systemType: apiType.value })
+    .exportDocument(document.name, document.knowledge_id, document.id, loading)
+    .then(() => {
+      MsgSuccess(t('common.exportSuccess'))
+    })
 }
 const exportDocumentZip = (document: any) => {
-  documentApi
-    .exportDocumentZip(document.name, document.dataset_id, document.id, loading)
+  loadSharedApi({ type: 'document', systemType: apiType.value })
+    .exportDocumentZip(document.name, document.knowledge_id, document.id, loading)
     .then(() => {
       MsgSuccess(t('common.exportSuccess'))
     })
@@ -577,19 +793,21 @@ function cancelTaskHandle(val: any) {
   })
   const obj = {
     id_list: arr,
-    type: val
+    type: val,
   }
-  documentApi.batchCancelTask(id, obj, loading).then(() => {
-    MsgSuccess(t('views.document.tip.cancelSuccess'))
-    multipleTableRef.value?.clearSelection()
-  })
+  loadSharedApi({ type: 'document', systemType: apiType.value })
+    .putBatchCancelTask(id, obj, loading)
+    .then(() => {
+      MsgSuccess(t('views.document.tip.cancelSuccess'))
+      multipleTableRef.value?.clearSelection()
+    })
 }
 
 function clearSelection() {
   multipleTableRef.value?.clearSelection()
 }
 
-function openDatasetDialog(row?: any) {
+function openknowledgeDialog(row?: any) {
   const arr: string[] = []
   if (row) {
     arr.push(row.id)
@@ -601,7 +819,7 @@ function openDatasetDialog(row?: any) {
     })
   }
 
-  SelectDatasetDialogRef.value.open(arr)
+  selectKnowledgeDialogRef.value.open(arr)
 }
 
 function dropdownHandle(obj: any) {
@@ -617,14 +835,16 @@ function beforeCommand(attr: string, val: any, task_type?: number) {
   return {
     attr: attr,
     command: val,
-    task_type
+    task_type,
   }
 }
 
 const cancelTask = (row: any, task_type: number) => {
-  documentApi.cancelTask(row.dataset_id, row.id, { type: task_type }).then(() => {
-    MsgSuccess(t('views.document.tip.sendMessage'))
-  })
+  loadSharedApi({ type: 'document', systemType: apiType.value })
+    .putCancelTask(id, row.id, { type: task_type })
+    .then(() => {
+      MsgSuccess(t('views.document.tip.sendMessage'))
+    })
 }
 
 function importDoc() {
@@ -666,8 +886,7 @@ const closeInterval = () => {
 }
 
 function syncDocument(row: any) {
-  console.log('row', row)
-  if (row.type === '1') {
+  if (+row.type === 1) {
     syncWebDocument(row)
   } else {
     syncLarkDocument(row)
@@ -677,12 +896,14 @@ function syncDocument(row: any) {
 function syncLarkDocument(row: any) {
   MsgConfirm(t('views.document.sync.confirmTitle'), t('views.document.sync.confirmMessage1'), {
     confirmButtonText: t('views.document.sync.label'),
-    confirmButtonClass: 'danger'
+    confirmButtonClass: 'danger',
   })
     .then(() => {
-      documentApi.putLarkDocumentSync(id, row.id).then(() => {
-        getList()
-      })
+      loadSharedApi({ type: 'document', systemType: apiType.value })
+        .putLarkDocumentSync(id, row.id)
+        .then(() => {
+          getList()
+        })
     })
     .catch(() => {})
 }
@@ -691,18 +912,20 @@ function syncWebDocument(row: any) {
   if (row.meta?.source_url) {
     MsgConfirm(t('views.document.sync.confirmTitle'), t('views.document.sync.confirmMessage1'), {
       confirmButtonText: t('views.document.sync.label'),
-      confirmButtonClass: 'danger'
+      confirmButtonClass: 'danger',
     })
       .then(() => {
-        documentApi.putDocumentSync(row.dataset_id, row.id).then(() => {
-          getList()
-        })
+        loadSharedApi({ type: 'document', systemType: apiType.value })
+          .putDocumentSync(row.knowledge_id, row.id)
+          .then(() => {
+            getList()
+          })
       })
       .catch(() => {})
   } else {
     MsgConfirm(t('common.tip'), t('views.document.sync.confirmMessage2'), {
       confirmButtonText: t('common.confirm'),
-      type: 'warning'
+      type: 'warning',
     })
       .then(() => {})
       .catch(() => {})
@@ -711,9 +934,11 @@ function syncWebDocument(row: any) {
 
 function refreshDocument(row: any) {
   const embeddingDocument = (stateList: Array<string>) => {
-    return documentApi.putDocumentRefresh(row.dataset_id, row.id, stateList).then(() => {
-      getList()
-    })
+    return loadSharedApi({ type: 'document', systemType: apiType.value })
+      .putDocumentRefresh(row.knowledge_id, row.id, stateList)
+      .then(() => {
+        getList()
+      })
   }
   embeddingContentDialogRef.value?.open(embeddingDocument)
 }
@@ -723,7 +948,10 @@ function rowClickHandle(row: any, column: any) {
     return
   }
 
-  router.push({ path: `/dataset/${id}/${row.id}` })
+  router.push({
+    path: `/paragraph/${id}/${row.id}`,
+    query: { from: apiType.value, isShared: isShared.value ? 'true' : 'false' },
+  })
 }
 
 /*
@@ -732,8 +960,8 @@ function rowClickHandle(row: any, column: any) {
 function creatQuickHandle(val: string) {
   loading.value = true
   const obj = [{ name: val }]
-  document
-    .asyncPostDocument(id, obj)
+  loadSharedApi({ type: 'document', systemType: apiType.value })
+    .putMulDocument(id, obj)
     .then(() => {
       getList()
       MsgSuccess(t('common.createSuccess'))
@@ -750,10 +978,12 @@ function syncMulDocument() {
       arr.push(v.id)
     }
   })
-  documentApi.delMulSyncDocument(id, arr, loading).then(() => {
-    MsgSuccess(t('views.document.sync.successMessage'))
-    getList()
-  })
+  loadSharedApi({ type: 'document', systemType: apiType.value })
+    .putMulSyncDocument(id, arr, loading)
+    .then(() => {
+      MsgSuccess(t('views.document.sync.successMessage'))
+      getList()
+    })
 }
 
 function syncLarkMulDocument() {
@@ -763,10 +993,12 @@ function syncLarkMulDocument() {
       arr.push(v.id)
     }
   })
-  documentApi.delMulLarkSyncDocument(id, arr, loading).then(() => {
-    MsgSuccess(t('views.document.sync.successMessage'))
-    getList()
-  })
+  loadSharedApi({ type: 'document', systemType: apiType.value })
+    .putMulLarkSyncDocument(id, arr, loading)
+    .then(() => {
+      MsgSuccess(t('views.document.sync.successMessage'))
+      getList()
+    })
 }
 
 function deleteMulDocument() {
@@ -775,8 +1007,8 @@ function deleteMulDocument() {
     t('views.document.delete.confirmMessage'),
     {
       confirmButtonText: t('common.confirm'),
-      confirmButtonClass: 'danger'
-    }
+      confirmButtonClass: 'danger',
+    },
   )
     .then(() => {
       const arr: string[] = []
@@ -785,11 +1017,13 @@ function deleteMulDocument() {
           arr.push(v.id)
         }
       })
-      documentApi.delMulDocument(id, arr, loading).then(() => {
-        MsgSuccess(t('views.document.delete.successMessage'))
-        multipleTableRef.value?.clearSelection()
-        getList()
-      })
+      loadSharedApi({ type: 'document', systemType: apiType.value })
+        .delMulDocument(id, arr, loading)
+        .then(() => {
+          MsgSuccess(t('views.document.delete.successMessage'))
+          multipleTableRef.value?.clearSelection()
+          getList()
+        })
     })
     .catch(() => {})
 }
@@ -797,12 +1031,22 @@ function deleteMulDocument() {
 function batchRefresh() {
   const arr: string[] = multipleSelection.value.map((v) => v.id)
   const embeddingBatchDocument = (stateList: Array<string>) => {
-    documentApi.batchRefresh(id, arr, stateList, loading).then(() => {
-      MsgSuccess(t('views.document.tip.vectorizationSuccess'))
-      multipleTableRef.value?.clearSelection()
-    })
+    loadSharedApi({ type: 'document', systemType: apiType.value })
+      .putBatchRefresh(id, arr, stateList, loading)
+      .then(() => {
+        MsgSuccess(t('views.document.tip.vectorizationSuccess'))
+        multipleTableRef.value?.clearSelection()
+      })
   }
   embeddingContentDialogRef.value?.open(embeddingBatchDocument)
+}
+
+function downloadDocument(row: any) {
+  loadSharedApi({ type: 'document', systemType: apiType.value })
+    .getDownloadSourceFile(id, row.id, row.name)
+    .then(() => {
+      getList()
+    })
 }
 
 function deleteDocument(row: any) {
@@ -811,14 +1055,16 @@ function deleteDocument(row: any) {
     `${t('views.document.delete.confirmMessage1')} ${row.paragraph_count} ${t('views.document.delete.confirmMessage2')}`,
     {
       confirmButtonText: t('common.confirm'),
-      confirmButtonClass: 'danger'
-    }
+      confirmButtonClass: 'danger',
+    },
   )
     .then(() => {
-      documentApi.delDocument(id, row.id, loading).then(() => {
-        MsgSuccess(t('common.deleteSuccess'))
-        getList()
-      })
+      loadSharedApi({ type: 'document', systemType: apiType.value })
+        .delDocument(id, row.id, loading)
+        .then(() => {
+          MsgSuccess(t('common.deleteSuccess'))
+          getList()
+        })
     })
     .catch(() => {})
 }
@@ -827,9 +1073,9 @@ function deleteDocument(row: any) {
   更新名称或状态
 */
 function updateData(documentId: string, data: any, msg: string) {
-  documentApi
+  loadSharedApi({ type: 'document', systemType: apiType.value })
     .putDocument(id, documentId, data, loading)
-    .then((res) => {
+    .then((res: any) => {
       const index = documentData.value.findIndex((v) => v.id === documentId)
       documentData.value.splice(index, 1, res.data)
       MsgSuccess(msg)
@@ -840,18 +1086,18 @@ function updateData(documentId: string, data: any, msg: string) {
     })
 }
 
-function changeState(row: any) {
+async function changeState(row: any) {
   const obj = {
-    is_active: !row.is_active
+    is_active: !row.is_active,
   }
   const str = !row.is_active ? t('common.status.enableSuccess') : t('common.status.disableSuccess')
-  currentMouseId.value && updateData(row.id, obj, str)
+  await updateData(row.id, obj, str)
 }
 
 function editName(val: string, id: string) {
   if (val) {
     const obj = {
-      name: val
+      name: val,
     }
     updateData(id, obj, t('common.modifySuccess'))
   } else {
@@ -881,20 +1127,23 @@ function getList(bool?: boolean) {
   const param = {
     ...(filterText.value && { name: filterText.value }),
     ...filterMethod.value,
-    order_by: orderBy.value
+    order_by: orderBy.value,
+    folder_id: folderId,
   }
-  documentApi
-    .getDocument(id as string, paginationConfig.value, param, bool ? undefined : loading)
-    .then((res) => {
+  loadSharedApi({ type: 'document', isShared: isShared.value, systemType: apiType.value })
+    .getDocumentPage(id as string, paginationConfig.value, param, bool ? undefined : loading)
+    .then((res: any) => {
       documentData.value = res.data.records
       paginationConfig.value.total = res.data.total
     })
 }
 
 function getDetail() {
-  dataset.asyncGetDatasetDetail(id, loading).then((res: any) => {
-    datasetDetail.value = res.data
-  })
+  loadSharedApi({ type: 'knowledge', isShared: isShared.value, systemType: apiType.value })
+    .getKnowledgeDetail(id, loading)
+    .then((res: any) => {
+      knowledgeDetail.value = res.data
+    })
 }
 
 function refreshMigrate() {
@@ -944,9 +1193,7 @@ onBeforeUnmount(() => {
 })
 </script>
 <style lang="scss" scoped>
-.document-main {
-  box-sizing: border-box;
-
+.document {
   .mul-operation {
     position: fixed;
     margin-left: var(--sidebar-width);
@@ -958,6 +1205,11 @@ onBeforeUnmount(() => {
     background: #ffffff;
     z-index: 22;
     box-shadow: 0px -2px 4px 0px rgba(31, 35, 41, 0.08);
+  }
+  .document-table {
+    :deep(.el-table__row) {
+      cursor: pointer;
+    }
   }
 }
 </style>

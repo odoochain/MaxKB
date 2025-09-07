@@ -4,24 +4,23 @@ from typing import Type
 from rest_framework import serializers
 
 from application.flow.i_step_node import INode, NodeResult
-from common.util.field_message import ErrMessage
 
 from django.utils.translation import gettext_lazy as _
 
 
 class ApplicationNodeSerializer(serializers.Serializer):
-    application_id = serializers.CharField(required=True, error_messages=ErrMessage.char(_("Application ID")))
+    application_id = serializers.CharField(required=True, label=_("Application ID"))
     question_reference_address = serializers.ListField(required=True,
-                                                       error_messages=ErrMessage.list(_("User Questions")))
-    api_input_field_list = serializers.ListField(required=False, error_messages=ErrMessage.list(_("API Input Fields")))
+                                                       label=_("User Questions"))
+    api_input_field_list = serializers.ListField(required=False, label=_("API Input Fields"))
     user_input_field_list = serializers.ListField(required=False,
-                                                  error_messages=ErrMessage.uuid(_("User Input Fields")))
-    image_list = serializers.ListField(required=False, error_messages=ErrMessage.list(_("picture")))
-    document_list = serializers.ListField(required=False, error_messages=ErrMessage.list(_("document")))
-    audio_list = serializers.ListField(required=False, error_messages=ErrMessage.list(_("Audio")))
+                                                  label=_("User Input Fields"))
+    image_list = serializers.ListField(required=False, label=_("picture"))
+    document_list = serializers.ListField(required=False, label=_("document"))
+    audio_list = serializers.ListField(required=False, label=_("Audio"))
     child_node = serializers.DictField(required=False, allow_null=True,
-                                       error_messages=ErrMessage.dict(_("Child Nodes")))
-    node_data = serializers.DictField(required=False, allow_null=True, error_messages=ErrMessage.dict(_("Form Data")))
+                                       label=_("Child Nodes"))
+    node_data = serializers.DictField(required=False, allow_null=True, label=_("Form Data"))
 
 
 class IApplicationNode(INode):
@@ -75,7 +74,7 @@ class IApplicationNode(INode):
                 if 'file_id' not in audio:
                     raise ValueError(
                         _("Parameter value error: The uploaded audio lacks file_id, and the audio upload fails."))
-        return self.execute(**self.node_params_serializer.data, **self.flow_params_serializer.data,
+        return self.execute(**{**self.flow_params_serializer.data, **self.node_params_serializer.data},
                             app_document_list=app_document_list, app_image_list=app_image_list,
                             app_audio_list=app_audio_list,
                             message=str(question), **kwargs)

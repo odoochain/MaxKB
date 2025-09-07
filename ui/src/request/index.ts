@@ -9,10 +9,10 @@ import router from '@/router'
 import { ref, type WritableComputedRef } from 'vue'
 
 const axiosConfig = {
-  baseURL: '/api',
+  baseURL: (window.MaxKB?.prefix ? window.MaxKB?.prefix : '/admin') + '/api',
   withCredentials: false,
   timeout: 600000,
-  headers: {}
+  headers: {},
 }
 
 const instance = axios.create(axiosConfig)
@@ -23,18 +23,18 @@ instance.interceptors.request.use(
     if (config.headers === undefined) {
       config.headers = new AxiosHeaders()
     }
-    const { user } = useStore()
-    const token = user.getToken()
+    const { user, login } = useStore()
+    const token = login.getToken()
     const language = user.getLanguage()
     config.headers['Accept-Language'] = `${language}`
     if (token) {
-      config.headers['AUTHORIZATION'] = `${token}`
+      config.headers['AUTHORIZATION'] = `Bearer ${token}`
     }
     return config
   },
   (err: any) => {
     return Promise.reject(err)
-  }
+  },
 )
 
 //设置响应拦截器
@@ -47,7 +47,7 @@ instance.interceptors.response.use(
         }
         if (
           !response.config.url.includes('/valid') &&
-          !response.config.url.includes('/function_lib/debug')
+          !response.config.url.includes('/tool/debug')
         ) {
           MsgError(response.data.message)
           return Promise.reject(response.data)
@@ -77,11 +77,13 @@ instance.interceptors.response.use(
 
     if (err.response?.status === 403 && !err.response.config.url.includes('chat/open')) {
       MsgError(
-        err.response.data && err.response.data.message ? err.response.data.message : '没有权限访问'
+        err.response.data && err.response.data.message
+          ? err.response.data.message
+          : 'No permission to access',
       )
     }
     return Promise.reject(err)
-  }
+  },
 )
 
 export const request = instance
@@ -89,7 +91,7 @@ export const request = instance
 /* 简化请求方法，统一处理返回结果，并增加loading处理，这里以{success,data,message}格式的返回值为例，具体项目根据实际需求修改 */
 const promise: (
   request: Promise<any>,
-  loading?: NProgress | Ref<boolean> | WritableComputedRef<boolean>
+  loading?: NProgress | Ref<boolean> | WritableComputedRef<boolean>,
 ) => Promise<Result<any>> = (request, loading = ref(false)) => {
   return new Promise((resolve, reject) => {
     if ((loading as NProgress).start) {
@@ -130,12 +132,12 @@ export const get: (
   url: string,
   params?: unknown,
   loading?: NProgress | Ref<boolean>,
-  timeout?: number
+  timeout?: number,
 ) => Promise<Result<any>> = (
   url: string,
   params: unknown,
   loading?: NProgress | Ref<boolean>,
-  timeout?: number
+  timeout?: number,
 ) => {
   return promise(request({ url: url, method: 'get', params, timeout: timeout }), loading)
 }
@@ -153,7 +155,7 @@ export const post: (
   data?: unknown,
   params?: unknown,
   loading?: NProgress | Ref<boolean>,
-  timeout?: number
+  timeout?: number,
 ) => Promise<Result<any> | any> = (url, data, params, loading, timeout) => {
   return promise(request({ url: url, method: 'post', data, params, timeout }), loading)
 }
@@ -171,7 +173,7 @@ export const put: (
   data?: unknown,
   params?: unknown,
   loading?: NProgress | Ref<boolean>,
-  timeout?: number
+  timeout?: number,
 ) => Promise<Result<any>> = (url, data, params, loading, timeout) => {
   return promise(request({ url: url, method: 'put', data, params, timeout }), loading)
 }
@@ -188,7 +190,7 @@ export const del: (
   params?: unknown,
   data?: unknown,
   loading?: NProgress | Ref<boolean>,
-  timeout?: number
+  timeout?: number,
 ) => Promise<Result<any>> = (url, params, data, loading, timeout) => {
   return promise(request({ url: url, method: 'delete', params, data, timeout }), loading)
 }
@@ -201,20 +203,20 @@ export const del: (
  */
 export const postStream: (url: string, data?: unknown) => Promise<Result<any> | any> = (
   url,
-  data
+  data,
 ) => {
-  const { user } = useStore()
-  const token = user.getToken()
+  const { user, login } = useStore()
+  const token = login.getToken()
   const language = user.getLanguage()
   const headers: HeadersInit = { 'Content-Type': 'application/json' }
   if (token) {
-    headers['AUTHORIZATION'] = `${token}`
+    headers['AUTHORIZATION'] = `Bearer ${token}`
   }
   headers['Accept-Language'] = `${language}`
   return fetch(url, {
     method: 'POST',
     body: data ? JSON.stringify(data) : undefined,
-    headers: headers
+    headers: headers,
   })
 }
 
@@ -222,18 +224,18 @@ export const exportExcel: (
   fileName: string,
   url: string,
   params: any,
-  loading?: NProgress | Ref<boolean>
+  loading?: NProgress | Ref<boolean>,
 ) => Promise<any> = (
   fileName: string,
   url: string,
   params: any,
-  loading?: NProgress | Ref<boolean>
+  loading?: NProgress | Ref<boolean>,
 ) => {
   return promise(request({ url: url, method: 'get', params, responseType: 'blob' }), loading).then(
     (res: any) => {
       if (res) {
         const blob = new Blob([res], {
-          type: 'application/vnd.ms-excel'
+          type: 'application/vnd.ms-excel',
         })
         const link = document.createElement('a')
         link.href = window.URL.createObjectURL(blob)
@@ -243,37 +245,95 @@ export const exportExcel: (
         window.URL.revokeObjectURL(link.href)
       }
       return true
-    }
+    },
   )
+}
+
+function extractFilename(contentDisposition: string) {
+  if (!contentDisposition) return null;
+
+  // 处理 URL 编码的文件名
+  const urlEncodedMatch = contentDisposition.match(/filename=([^;]*)/i) ||
+                         contentDisposition.match(/filename\*=UTF-8''([^;]*)/i);
+  if (urlEncodedMatch && urlEncodedMatch[1]) {
+    try {
+      return decodeURIComponent(urlEncodedMatch[1].replace(/"/g, ''));
+    } catch (e) {
+      console.error("解码URL编码文件名失败:", e);
+    }
+  }
+
+  // 处理 Base64 编码的文件名
+  const base64Part = contentDisposition.match(/=\?utf-8\?b\?(.*?)\?=/i)?.[1];
+  if (base64Part) {
+    try {
+      const decoded = decodeURIComponent(escape(atob(base64Part)));
+      const filenameMatch = decoded.match(/filename="(.*?)"/i);
+      return filenameMatch ? filenameMatch[1] : null;
+    } catch (e) {
+      console.error("解码Base64文件名失败:", e);
+    }
+  }
+
+  return null;
 }
 
 export const exportFile: (
   fileName: string,
   url: string,
   params: any,
-  loading?: NProgress | Ref<boolean>
+  loading?: NProgress | Ref<boolean>,
 ) => Promise<any> = (
   fileName: string,
   url: string,
   params: any,
-  loading?: NProgress | Ref<boolean>
+  loading?: NProgress | Ref<boolean>,
 ) => {
-  return promise(request({ url: url, method: 'get', params, responseType: 'blob' }), loading).then(
-    (res: any) => {
-      if (res) {
-        const blob = new Blob([res], {
-          type: 'application/octet-stream'
-        })
-        const link = document.createElement('a')
-        link.href = window.URL.createObjectURL(blob)
-        link.download = fileName
-        link.click()
-        //释放内存
-        window.URL.revokeObjectURL(link.href)
-      }
-      return true
+  return promise(
+    request({
+      url: url,
+      method: 'get',
+      params,
+      responseType: 'blob',
+      transformResponse: [
+        function (data, headers) {
+          // 在这里可以访问 headers
+          if (data.type === 'application/json') {
+            data.text().then((text: string) => {
+              try {
+                const json = JSON.parse(text)
+                MsgError(json.message || text)
+              } catch {
+                MsgError(text)
+              }
+            })
+            throw new Error('Response is not a valid file')
+          }
+          // const contentType = headers['content-type'];
+          const contentDisposition = headers['content-disposition']
+          // console.log('Content-Type:', contentType);
+          // console.log('Content-Disposition:', contentDisposition);
+          // 如果没有提供文件名，则使用默认名称
+          fileName = extractFilename(contentDisposition) || fileName
+          return data // 必须返回数据
+        },
+      ],
+    }),
+    loading,
+  ).then((res: any) => {
+    if (res) {
+      const blob = new Blob([res], {
+        type: 'application/octet-stream',
+      })
+      const link = document.createElement('a')
+      link.href = window.URL.createObjectURL(blob)
+      link.download = fileName
+      link.click()
+      //释放内存
+      window.URL.revokeObjectURL(link.href)
     }
-  )
+    return true
+  }).catch(()=>{})
 }
 
 export const exportExcelPost: (
@@ -281,13 +341,13 @@ export const exportExcelPost: (
   url: string,
   params: any,
   data: any,
-  loading?: NProgress | Ref<boolean>
+  loading?: NProgress | Ref<boolean>,
 ) => Promise<any> = (
   fileName: string,
   url: string,
   params: any,
   data: any,
-  loading?: NProgress | Ref<boolean>
+  loading?: NProgress | Ref<boolean>,
 ) => {
   return promise(
     request({
@@ -295,13 +355,13 @@ export const exportExcelPost: (
       method: 'post',
       params, // 查询字符串参数
       data, // 请求体数据
-      responseType: 'blob'
+      responseType: 'blob',
     }),
-    loading
+    loading,
   ).then((res: any) => {
     if (res) {
       const blob = new Blob([res], {
-        type: 'application/vnd.ms-excel'
+        type: 'application/vnd.ms-excel',
       })
       const link = document.createElement('a')
       link.href = window.URL.createObjectURL(blob)
@@ -319,13 +379,13 @@ export const download: (
   method: string,
   data?: any,
   params?: any,
-  loading?: NProgress | Ref<boolean>
+  loading?: NProgress | Ref<boolean>,
 ) => Promise<any> = (
   url: string,
   method: string,
   data?: any,
   params?: any,
-  loading?: NProgress | Ref<boolean>
+  loading?: NProgress | Ref<boolean>,
 ) => {
   return promise(request({ url: url, method: method, data, params, responseType: 'blob' }), loading)
 }

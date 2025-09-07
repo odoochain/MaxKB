@@ -17,7 +17,7 @@
           :rules="{
             required: true,
             message: $t('views.applicationWorkflow.nodes.imageGenerateNode.model.requiredMessage'),
-            trigger: 'change'
+            trigger: 'change',
           }"
         >
           <template #label>
@@ -25,7 +25,7 @@
               <div>
                 <span
                   >{{ $t('views.applicationWorkflow.nodes.imageGenerateNode.model.label')
-                  }}<span class="danger">*</span></span
+                  }}<span class="color-danger">*</span></span
                 >
               </div>
               <el-button
@@ -35,7 +35,7 @@
                 @click="openAIParamSettingDialog(form_data.model_id)"
                 @refreshForm="refreshParam"
               >
-                <el-icon><Setting /></el-icon>
+                <AppIcon iconName="app-setting"></AppIcon>
               </el-button>
             </div>
           </template>
@@ -49,6 +49,8 @@
               $t('views.applicationWorkflow.nodes.imageGenerateNode.model.requiredMessage')
             "
             :options="modelOptions"
+            showFooter
+            :model-type="'TTI'"
           ></ModelSelect>
         </el-form-item>
 
@@ -57,8 +59,8 @@
           prop="prompt"
           :rules="{
             required: true,
-            message: $t('views.application.applicationForm.form.prompt.requiredMessage'),
-            trigger: 'blur'
+            message: $t('views.application.form.prompt.requiredMessage'),
+            trigger: 'blur',
           }"
         >
           <template #label>
@@ -66,7 +68,7 @@
               <div class="mr-4">
                 <span
                   >{{ $t('views.applicationWorkflow.nodes.imageGenerateNode.prompt.label')
-                  }}<span class="danger">*</span></span
+                  }}<span class="color-danger">*</span></span
                 >
               </div>
               <el-tooltip effect="dark" placement="right" popper-class="max-w-200">
@@ -90,8 +92,8 @@
           prop="prompt"
           :rules="{
             required: false,
-            message: $t('views.application.applicationForm.form.prompt.requiredMessage'),
-            trigger: 'blur'
+            message: $t('views.application.form.prompt.requiredMessage'),
+            trigger: 'blur',
           }"
         >
           <template #label>
@@ -129,10 +131,9 @@
           <template #label>
             <div class="flex align-center">
               <div class="mr-4">
-                <span
-                  >{{ $t('views.applicationWorkflow.nodes.aiChatNode.returnContent.label')
-                  }}<span class="danger">*</span></span
-                >
+                <span>{{
+                  $t('views.applicationWorkflow.nodes.aiChatNode.returnContent.label')
+                }}</span>
               </div>
               <el-tooltip effect="dark" placement="right" popper-class="max-w-200">
                 <template #content>
@@ -152,19 +153,27 @@
 
 <script setup lang="ts">
 import NodeContainer from '@/workflow/common/NodeContainer.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, inject } from 'vue'
 import { groupBy, set } from 'lodash'
-import applicationApi from '@/api/application'
-import { app } from '@/main'
-import useStore from '@/stores'
 import type { FormInstance } from 'element-plus'
 import AIModeParamSettingDialog from '@/views/application/component/AIModeParamSettingDialog.vue'
 import { t } from '@/locales'
-const { model } = useStore()
+import { useRoute } from 'vue-router'
+import { loadSharedApi } from '@/utils/dynamics-api/shared-api'
+const getApplicationDetail = inject('getApplicationDetail') as any
+const route = useRoute()
 
 const {
-  params: { id }
-} = app.config.globalProperties.$route as any
+  params: { id },
+} = route as any
+
+const apiType = computed(() => {
+  if (route.path.includes('resource-management')) {
+    return 'systemManage'
+  } else {
+    return 'workspace'
+  }
+})
 
 const props = defineProps<{ nodeModel: any }>()
 const modelOptions = ref<any>(null)
@@ -199,7 +208,7 @@ const form = {
   is_result: true,
   temperature: null,
   max_tokens: null,
-  image_list: ['start-node', 'image']
+  image_list: ['start-node', 'image'],
 }
 
 const form_data = computed({
@@ -213,27 +222,35 @@ const form_data = computed({
   },
   set: (value) => {
     set(props.nodeModel.properties, 'node_data', value)
-  }
+  },
 })
 
-function getModel() {
-  if (id) {
-    applicationApi.getApplicationTTIModel(id).then((res: any) => {
+const application = getApplicationDetail()
+function getSelectModel() {
+  const obj =
+    apiType.value === 'systemManage'
+      ? {
+          model_type: 'TTI',
+          workspace_id: application.value?.workspace_id,
+        }
+      : {
+          model_type: 'TTI',
+        }
+  loadSharedApi({ type: 'model', systemType: apiType.value })
+    .getSelectModelList(obj)
+    .then((res: any) => {
       modelOptions.value = groupBy(res?.data, 'provider')
     })
-  } else {
-    model.asyncGetModel().then((res: any) => {
-      modelOptions.value = groupBy(res?.data, 'provider')
-    })
-  }
 }
 
 const model_change = () => {
-  if (form_data.value.model_id) {
-    AIModeParamSettingDialogRef.value?.reset_default(form_data.value.model_id, id)
-  } else {
-    refreshParam({})
-  }
+  nextTick(() => {
+    if (form_data.value.model_id) {
+      AIModeParamSettingDialogRef.value?.reset_default(form_data.value.model_id, id)
+    } else {
+      refreshParam({})
+    }
+  })
 }
 
 const openAIParamSettingDialog = (modelId: string) => {
@@ -255,7 +272,7 @@ function submitNegativeDialog(val: string) {
 }
 
 onMounted(() => {
-  getModel()
+  getSelectModel()
 
   set(props.nodeModel, 'validate', validate)
 })

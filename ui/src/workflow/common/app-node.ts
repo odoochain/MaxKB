@@ -1,17 +1,31 @@
 import Components from '@/components'
 import ElementPlus from 'element-plus'
 import * as ElementPlusIcons from '@element-plus/icons-vue'
-import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
+import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import { HtmlResize } from '@logicflow/extension'
 import { h as lh } from '@logicflow/core'
 import { createApp, h } from 'vue'
 import directives from '@/directives'
 import i18n from '@/locales'
-import { WorkflowType } from '@/enums/workflow'
+import { WorkflowType } from '@/enums/application'
 import { nodeDict } from '@/workflow/common/data'
 import { isActive, connect, disconnect } from './teleport'
 import { t } from '@/locales'
 import { type Dict } from '@/api/type/common'
+const getNodeName = (nodes: Array<any>, baseName: string) => {
+  let index = 0
+  let name = baseName
+  while (true) {
+    if (index > 0) {
+      name = baseName + index
+      console.log(name)
+    }
+    if (!nodes.some((node: any) => node.properties.stepName === name.trim())) {
+      return name
+    }
+    index++
+  }
+}
 class AppNode extends HtmlResize.view {
   isMounted
   r?: any
@@ -32,23 +46,12 @@ class AppNode extends HtmlResize.view {
     if (props.model.properties.noRender) {
       delete props.model.properties.noRender
     } else {
-      const filterNodes = props.graphModel.nodes.filter((v: any) => v.type === props.model.type)
-      const filterNameSameNodes = filterNodes.filter(
-        (v: any) => v.properties.stepName === props.model.properties.stepName
+      props.model.properties.stepName = getNodeName(
+        props.graphModel.nodes.filter((node: any) => node.id !== props.model.id),
+        props.model.properties.stepName,
       )
-      if (filterNameSameNodes.length - 1 > 0) {
-        getNodesName(filterNameSameNodes.length - 1)
-      }
     }
-    function getNodesName(num: number) {
-      const number = num
-      const name = props.model.properties.stepName + number
-      if (!props.graphModel.nodes?.some((node: any) => node.properties.stepName === name.trim())) {
-        props.model.properties.stepName = name
-      } else {
-        getNodesName(number + 1)
-      }
-    }
+
     props.model.properties.config = nodeDict[props.model.type].properties.config
     if (props.model.properties.height) {
       props.model.height = props.model.properties.height
@@ -61,14 +64,20 @@ class AppNode extends HtmlResize.view {
         value: 'global',
         label: t('views.applicationWorkflow.variable.global'),
         type: 'global',
-        children: this.props.model.properties?.config?.globalFields || []
+        children: this.props.model.properties?.config?.globalFields || [],
+      })
+      result.push({
+        value: 'chat',
+        label: t('views.applicationWorkflow.variable.chat'),
+        type: 'chat',
+        children: this.props.model.properties?.config?.chatFields || [],
       })
     }
     result.push({
       value: this.props.model.id,
       label: this.props.model.properties.stepName,
       type: this.props.model.type,
-      children: this.props.model.properties?.config?.fields || []
+      children: this.props.model.properties?.config?.fields || [],
     })
     return result
   }
@@ -83,7 +92,7 @@ class AppNode extends HtmlResize.view {
     if (contain_self) {
       return {
         ...this.up_node_field_dict,
-        [this.props.model.id]: this.get_node_field_list()
+        [this.props.model.id]: this.get_node_field_list(),
       }
     }
     return this.up_node_field_dict ? this.up_node_field_dict : {}
@@ -92,7 +101,7 @@ class AppNode extends HtmlResize.view {
   get_up_node_field_list(contain_self: boolean, use_cache: boolean) {
     const result = Object.values(this.get_up_node_field_dict(contain_self, use_cache)).reduce(
       (pre, next) => [...pre, ...next],
-      []
+      [],
     )
     const start_node_field_list = this.props.graphModel
       .getNodeModelById('start-node')
@@ -126,7 +135,7 @@ class AppNode extends HtmlResize.view {
         x: x - 10,
         y: y - 12,
         width: 30,
-        height: 30
+        height: 30,
       },
       [
         lh('div', {
@@ -174,10 +183,10 @@ class AppNode extends HtmlResize.view {
         <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_5199_166905" result="shape"/>
         </filter>
         </defs>
-        </svg>`
-          }
-        })
-      ]
+        </svg>`,
+          },
+        }),
+      ],
     )
   }
 
@@ -214,7 +223,7 @@ class AppNode extends HtmlResize.view {
       } else {
         this.r = h(this.component, {
           properties: this.props.model.properties,
-          nodeModel: this.props.model
+          nodeModel: this.props.model,
         })
         this.app = createApp({
           render() {
@@ -223,13 +232,13 @@ class AppNode extends HtmlResize.view {
           provide() {
             return {
               getNode: () => model,
-              getGraph: () => graphModel
+              getGraph: () => graphModel,
             }
-          }
+          },
         })
 
         this.app.use(ElementPlus, {
-          locale: zhCn
+          locale: zhCn,
         })
         this.app.use(Components)
         this.app.use(directives)
@@ -295,7 +304,7 @@ class AppNodeModel extends HtmlResize.model {
   }
   getNodeStyle() {
     return {
-      overflow: 'visible'
+      overflow: 'visible',
     }
   }
   getOutlineStyle() {
@@ -361,13 +370,15 @@ class AppNodeModel extends HtmlResize.model {
       message: t('views.applicationWorkflow.tip.onlyRight'),
       validate: (sourceNode: any, targetNode: any, sourceAnchor: any) => {
         return sourceAnchor.type === 'right'
-      }
+      },
     }
     this.sourceRules.push({
       message: t('views.applicationWorkflow.tip.notRecyclable'),
       validate: (sourceNode: any, targetNode: any, sourceAnchor: any, targetAnchor: any) => {
-        return !isLoop(sourceNode.id, targetNode.id)
-      }
+        const up_node_list = this.graphModel.getNodeIncomingNode(targetNode.id)
+        const is_c = up_node_list.find((up_node) => up_node.id == sourceNode.id)
+        return !is_c && !isLoop(sourceNode.id, targetNode.id)
+      },
     })
 
     this.sourceRules.push(circleOnlyAsTarget)
@@ -375,7 +386,7 @@ class AppNodeModel extends HtmlResize.model {
       message: t('views.applicationWorkflow.tip.onlyLeft'),
       validate: (sourceNode: any, targetNode: any, sourceAnchor: any, targetAnchor: any) => {
         return targetAnchor.type === 'left'
-      }
+      },
     })
   }
   getDefaultAnchor() {
@@ -390,14 +401,14 @@ class AppNodeModel extends HtmlResize.model {
           y: showNode ? y : y - 15,
           id: `${id}_left`,
           edgeAddable: false,
-          type: 'left'
+          type: 'left',
         })
       }
       anchors.push({
         x: x + width / 2 - 10,
         y: showNode ? y : y - 15,
         id: `${id}_right`,
-        type: 'right'
+        type: 'right',
       })
     }
 

@@ -16,8 +16,8 @@
           prop="tts_model_id"
           :rules="{
             required: true,
-            message: $t('views.application.applicationForm.form.voicePlay.placeholder'),
-            trigger: 'change'
+            message: $t('views.application.form.voicePlay.placeholder'),
+            trigger: 'change',
           }"
         >
           <template #label>
@@ -25,7 +25,7 @@
               <div>
                 <span
                   >{{ $t('views.applicationWorkflow.nodes.textToSpeechNode.tts_model.label')
-                  }}<span class="danger">*</span></span
+                  }}<span class="color-danger">*</span></span
                 >
               </div>
               <el-button
@@ -35,7 +35,7 @@
                 :disabled="!form_data.tts_model_id"
                 class="mr-4"
               >
-                <el-icon><Setting /></el-icon>
+                <AppIcon iconName="app-setting"></AppIcon>
               </el-button>
             </div>
           </template>
@@ -43,8 +43,10 @@
             @wheel="wheel"
             :teleported="false"
             v-model="form_data.tts_model_id"
-            :placeholder="$t('views.application.applicationForm.form.voicePlay.placeholder')"
+            :placeholder="$t('views.application.form.voicePlay.placeholder')"
             :options="modelOptions"
+            showFooter
+            :model-type="'TTS'"
           ></ModelSelect>
         </el-form-item>
         <el-form-item
@@ -53,7 +55,7 @@
           :rules="{
             message: $t('views.applicationWorkflow.nodes.textToSpeechNode.content.label'),
             trigger: 'blur',
-            required: true
+            required: true,
           }"
         >
           <template #label>
@@ -61,7 +63,7 @@
               <div>
                 <span
                   >{{ $t('views.applicationWorkflow.nodes.textToSpeechNode.content.label')
-                  }}<span class="danger">*</span></span
+                  }}<span class="color-danger">*</span></span
                 >
               </div>
             </div>
@@ -82,10 +84,9 @@
           <template #label>
             <div class="flex align-center">
               <div class="mr-4">
-                <span
-                  >{{ $t('views.applicationWorkflow.nodes.aiChatNode.returnContent.label')
-                  }}<span class="danger">*</span></span
-                >
+                <span>{{
+                  $t('views.applicationWorkflow.nodes.aiChatNode.returnContent.label')
+                }}</span>
               </div>
               <el-tooltip effect="dark" placement="right" popper-class="max-w-200">
                 <template #content>
@@ -104,26 +105,34 @@
 </template>
 
 <script setup lang="ts">
-import NodeContainer from '@/workflow/common/NodeContainer.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, inject } from 'vue'
 import { groupBy, set } from 'lodash'
-import applicationApi from '@/api/application'
-import { app } from '@/main'
-import useStore from '@/stores'
+import NodeContainer from '@/workflow/common/NodeContainer.vue'
+import TTSModeParamSettingDialog from '@/views/application/component/TTSModeParamSettingDialog.vue'
 import NodeCascader from '@/workflow/common/NodeCascader.vue'
 import type { FormInstance } from 'element-plus'
 import { MsgSuccess } from '@/utils/message'
 import { t } from '@/locales'
-import TTSModeParamSettingDialog from '@/views/application/component/TTSModeParamSettingDialog.vue'
-
-const TTSModeParamSettingDialogRef = ref<InstanceType<typeof TTSModeParamSettingDialog>>()
-const { model } = useStore()
+import { useRoute } from 'vue-router'
+import { loadSharedApi } from '@/utils/dynamics-api/shared-api'
+const getApplicationDetail = inject('getApplicationDetail') as any
+const route = useRoute()
 
 const {
-  params: { id }
-} = app.config.globalProperties.$route as any
+  params: { id },
+} = route as any
 
+const apiType = computed(() => {
+  if (route.path.includes('resource-management')) {
+    return 'systemManage'
+  } else {
+    return 'workspace'
+  }
+})
 const props = defineProps<{ nodeModel: any }>()
+
+const TTSModeParamSettingDialogRef = ref<InstanceType<typeof TTSModeParamSettingDialog>>()
+
 const modelOptions = ref<any>(null)
 
 const aiChatNodeFormRef = ref<FormInstance>()
@@ -131,7 +140,7 @@ const nodeCascaderRef = ref()
 const validate = () => {
   return Promise.all([
     nodeCascaderRef.value ? nodeCascaderRef.value.validate() : Promise.resolve(''),
-    aiChatNodeFormRef.value?.validate()
+    aiChatNodeFormRef.value?.validate(),
   ]).catch((err: any) => {
     return Promise.reject({ node: props.nodeModel, errMessage: err })
   })
@@ -151,7 +160,7 @@ const form = {
   tts_model_id: '',
   is_result: true,
   content_list: [],
-  model_params_setting: {}
+  model_params_setting: {},
 }
 
 const form_data = computed({
@@ -165,25 +174,31 @@ const form_data = computed({
   },
   set: (value) => {
     set(props.nodeModel.properties, 'node_data', value)
-  }
+  },
 })
 
-function getModel() {
-  if (id) {
-    applicationApi.getApplicationTTSModel(id).then((res: any) => {
+const application = getApplicationDetail()
+function getSelectModel() {
+  const obj =
+    apiType.value === 'systemManage'
+      ? {
+          model_type: 'TTS',
+          workspace_id: application.value?.workspace_id,
+        }
+      : {
+          model_type: 'TTS',
+        }
+  loadSharedApi({ type: 'model', systemType: apiType.value })
+    .getSelectModelList(obj)
+    .then((res: any) => {
       modelOptions.value = groupBy(res?.data, 'provider')
     })
-  } else {
-    model.asyncGetModel().then((res: any) => {
-      modelOptions.value = groupBy(res?.data, 'provider')
-    })
-  }
 }
 
 const openTTSParamSettingDialog = () => {
   const model_id = form_data.value.tts_model_id
   if (!model_id) {
-    MsgSuccess(t('views.application.applicationForm.form.voicePlay.requiredMessage'))
+    MsgSuccess(t('views.application.form.voicePlay.requiredMessage'))
     return
   }
   TTSModeParamSettingDialogRef.value?.open(model_id, id, form_data.value.model_params_setting)
@@ -193,7 +208,7 @@ const refreshTTSForm = (data: any) => {
 }
 
 onMounted(() => {
-  getModel()
+  getSelectModel()
 
   set(props.nodeModel, 'validate', validate)
 })

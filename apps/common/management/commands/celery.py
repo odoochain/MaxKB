@@ -11,7 +11,7 @@ import subprocess
 
 from django.core.management.base import BaseCommand
 
-from smartdoc.const import BASE_DIR
+from maxkb.const import BASE_DIR
 
 
 class Command(BaseCommand):

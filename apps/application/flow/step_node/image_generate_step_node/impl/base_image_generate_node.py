@@ -7,24 +7,27 @@ from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 
 from application.flow.i_step_node import NodeResult
 from application.flow.step_node.image_generate_step_node.i_image_generate_node import IImageGenerateNode
-from common.util.common import bytes_to_uploaded_file
-from dataset.serializers.file_serializers import FileSerializer
-from setting.models_provider.tools import get_model_instance_by_model_user_id
+from common.utils.common import bytes_to_uploaded_file
+from knowledge.models import FileSourceType
+from oss.serializers.file import FileSerializer
+from models_provider.tools import get_model_instance_by_model_workspace_id
 
 
 class BaseImageGenerateNode(IImageGenerateNode):
     def save_context(self, details, workflow_manage):
         self.context['answer'] = details.get('answer')
         self.context['question'] = details.get('question')
-        self.answer_text = details.get('answer')
+        if self.node_params.get('is_result', False):
+            self.answer_text = details.get('answer')
 
     def execute(self, model_id, prompt, negative_prompt, dialogue_number, dialogue_type, history_chat_record, chat_id,
                 model_params_setting,
                 chat_record_id,
                 **kwargs) -> NodeResult:
-        print(model_params_setting)
         application = self.workflow_manage.work_flow_post_handler.chat_info.application
-        tti_model = get_model_instance_by_model_user_id(model_id, self.flow_params_serializer.data.get('user_id'), **model_params_setting)
+        workspace_id = self.workflow_manage.get_body().get('workspace_id')
+        tti_model = get_model_instance_by_model_workspace_id(model_id, workspace_id,
+                                                             **model_params_setting)
         history_message = self.get_history_message(history_chat_record, dialogue_number)
         self.context['history_message'] = history_message
         question = self.generate_prompt_question(prompt)
@@ -32,19 +35,26 @@ class BaseImageGenerateNode(IImageGenerateNode):
         message_list = self.generate_message_list(question, history_message)
         self.context['message_list'] = message_list
         self.context['dialogue_type'] = dialogue_type
-        print(message_list)
+        self.context['negative_prompt'] = negative_prompt
         image_urls = tti_model.generate_image(question, negative_prompt)
         # 保存图片
         file_urls = []
         for image_url in image_urls:
             file_name = 'generated_image.png'
-            file = bytes_to_uploaded_file(requests.get(image_url).content, file_name)
+            if isinstance(image_url, str) and image_url.startswith('http'):
+                image_url = requests.get(image_url).content
+            file = bytes_to_uploaded_file(image_url, file_name)
             meta = {
                 'debug': False if application.id else True,
                 'chat_id': chat_id,
                 'application_id': str(application.id) if application.id else None,
             }
-            file_url = FileSerializer(data={'file': file, 'meta': meta}).upload()
+            file_url = FileSerializer(data={
+                'file': file,
+                'meta': meta,
+                'source_id': meta['application_id'],
+                'source_type': FileSourceType.APPLICATION.value
+            }).upload()
             file_urls.append(file_url)
         self.context['image_list'] = [{'file_id': path.split('/')[-1], 'url': path} for path in file_urls]
         answer = ' '.join([f"![Image]({path})" for path in file_urls])
@@ -116,5 +126,6 @@ class BaseImageGenerateNode(IImageGenerateNode):
             'status': self.status,
             'err_message': self.err_message,
             'image_list': self.context.get('image_list'),
-            'dialogue_type': self.context.get('dialogue_type')
+            'dialogue_type': self.context.get('dialogue_type'),
+            'negative_prompt': self.context.get('negative_prompt'),
         }

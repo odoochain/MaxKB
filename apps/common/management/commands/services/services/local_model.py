@@ -6,6 +6,7 @@
     @date：2024/8/21 13:28
     @desc:
 """
+from maxkb.const import CONFIG
 from .base import BaseService
 from ..hands import *
 
@@ -24,16 +25,18 @@ class GunicornLocalModelService(BaseService):
         os.environ.setdefault('SERVER_NAME', 'local_model')
         log_format = '%(h)s %(t)s %(L)ss "%(r)s" %(s)s %(b)s '
         bind = f'{CONFIG.get("LOCAL_MODEL_HOST")}:{CONFIG.get("LOCAL_MODEL_PORT")}'
+        worker = CONFIG.get("LOCAL_MODEL_HOST_WORKER", 1)
         cmd = [
-            'gunicorn', 'smartdoc.wsgi:application',
+            'gunicorn', 'maxkb.wsgi:application',
             '-b', bind,
             '-k', 'gthread',
             '--threads', '200',
-            '-w', "1",
+            '-w', str(worker),
             '--max-requests', '10240',
             '--max-requests-jitter', '2048',
             '--access-logformat', log_format,
-            '--access-logfile', '-'
+            '--access-logfile', '/dev/null',
+            '--error-logfile', '-'
         ]
         if DEBUG:
             cmd.append('--reload')

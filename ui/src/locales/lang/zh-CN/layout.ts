@@ -2,7 +2,7 @@ export default {
   github: '项目地址',
   wiki: '用户手册',
   forum: '论坛求助',
-  logout: '退出',
+  logout: '退出登录',
   apiKey: 'API Key 管理',
   apiServiceAddress: 'API 服务地址',
   language: '语言',
@@ -13,7 +13,8 @@ export default {
     edition: {
       label: '版本',
       community: '社区版',
-      professional: '专业版'
+      professional: '专业版',
+      enterprise: '企业版',
     },
     version: '版本号',
     serialNo: '序列号',
@@ -28,6 +29,6 @@ export default {
     expiringSoon: '即将到期'
   },
   copyright: '版权所有 © 2014-2025 杭州飞致云信息科技有限公司',
-  userManualUrl: 'https://maxkb.cn/docs/',
+  userManualUrl: 'https://maxkb.cn/docs/v2/',
   forumUrl: 'https://bbs.fit2cloud.com/c/mk/11'
 }

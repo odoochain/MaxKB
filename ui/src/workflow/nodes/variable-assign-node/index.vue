@@ -16,16 +16,14 @@
               <div class="flex-between">
                 <div>
                   {{ $t('views.applicationWorkflow.variable.label') }}
-                  <span class="danger">*</span>
+                  <span class="color-danger">*</span>
                 </div>
                 <el-button
                   text
                   @click="deleteVariable(index)"
                   v-if="form_data.variable_list.length > 1"
                 >
-                  <el-icon>
-                    <Delete />
-                  </el-icon>
+                  <AppIcon iconName="app-delete"></AppIcon>
                 </el-button>
               </div>
             </template>
@@ -42,17 +40,14 @@
           <div class="flex-between mb-8">
             <span class="lighter"
               >{{ $t('views.applicationWorkflow.nodes.variableAssignNode.assign')
-              }}<span class="danger">*</span></span
+              }}<span class="color-danger">*</span></span
             >
             <el-select :teleported="false" v-model="item.source" size="small" style="width: 85px">
               <el-option
                 :label="$t('views.applicationWorkflow.nodes.replyNode.replyContent.reference')"
                 value="referencing"
               />
-              <el-option
-                :label="$t('views.applicationWorkflow.nodes.replyNode.replyContent.custom')"
-                value="custom"
-              />
+              <el-option :label="$t('common.custom')" value="custom" />
             </el-select>
           </div>
 
@@ -72,7 +67,7 @@
               :rules="{
                 message: t('common.inputPlaceholder'),
                 trigger: 'blur',
-                required: true
+                required: true,
               }"
             >
               <el-input
@@ -89,7 +84,7 @@
               :rules="{
                 message: $t('common.inputPlaceholder'),
                 trigger: 'blur',
-                required: true
+                required: true,
               }"
             >
               <el-input-number v-model="item.value"></el-input-number>
@@ -102,7 +97,7 @@
                 {
                   message: $t('common.inputPlaceholder'),
                   trigger: 'blur',
-                  required: true
+                  required: true,
                 },
                 {
                   validator: (rule: any, value: any, callback: any) => {
@@ -113,8 +108,8 @@
                       callback(new Error('Invalid JSON format'))
                     }
                   },
-                  trigger: 'blur'
-                }
+                  trigger: 'blur',
+                },
               ]"
             >
               <CodemirrorEditor
@@ -122,7 +117,7 @@
                 v-model="item.value"
                 :style="{
                   height: '100px',
-                  width: '155px'
+                  width: '155px',
                 }"
                 @submitDialog="(val: string) => (form_data.variable_list[index].value = val)"
               />
@@ -141,9 +136,7 @@
       </template>
 
       <el-button link type="primary" @click="addVariable">
-        <el-icon class="mr-4">
-          <Plus />
-        </el-icon>
+        <AppIcon iconName="app-add-outlined" class="mr-4"></AppIcon>
         {{ $t('common.add') }}
       </el-button>
     </el-form>
@@ -155,7 +148,7 @@ import NodeContainer from '@/workflow/common/NodeContainer.vue'
 import NodeCascader from '@/workflow/common/NodeCascader.vue'
 import { computed, onMounted, ref } from 'vue'
 import { isLastNode } from '@/workflow/common/data'
-import { randomId } from '@/utils/utils'
+import { randomId } from '@/utils/common'
 import { t } from '@/locales'
 
 const props = defineProps<{ nodeModel: any }>()
@@ -180,9 +173,9 @@ const form = {
       reference: [],
       type: 'string',
       source: 'custom',
-      name: ''
-    }
-  ]
+      name: '',
+    },
+  ],
 }
 
 const form_data = computed({
@@ -196,7 +189,7 @@ const form_data = computed({
   },
   set: (value) => {
     set(props.nodeModel.properties, 'node_data', value)
-  }
+  },
 })
 
 function submitDialog(val: string) {
@@ -211,7 +204,7 @@ const validate = async () => {
   // console.log(replyNodeFormRef.value.validate())
   let ps = [
     replyNodeFormRef.value?.validate(),
-    ...nodeCascaderRef.value.map((item: any) => item.validate())
+    ...nodeCascaderRef.value.map((item: any) => item.validate()),
   ]
   if (nodeCascaderRef2.value) {
     ps = [...ps, ...nodeCascaderRef.value.map((item: any) => item.validate())]
@@ -230,7 +223,7 @@ function addVariable() {
     reference: [],
     type: 'string',
     source: 'custom',
-    name: ''
+    name: '',
   }
   list.push(obj)
   set(props.nodeModel.properties.node_data, 'variable_list', list)
@@ -246,6 +239,11 @@ function variableChange(item: any) {
   props.nodeModel.graphModel.nodes.map((node: any) => {
     if (node.id === 'start-node') {
       node.properties.config.globalFields.forEach((field: any) => {
+        if (field.value === item.fields[1]) {
+          item.name = field.label
+        }
+      })
+      node.properties.config.chatFields.forEach((field: any) => {
         if (field.value === item.fields[1]) {
           item.name = field.label
         }

@@ -15,12 +15,16 @@
             clearable
           />
 
-          <el-button type="primary" @click="submitHandle" :disabled="loading">{{$t('common.create')}}</el-button>
-          <el-button @click="showInput = false" :disabled="loading">{{$t('common.cancel')}}</el-button>
+          <el-button type="primary" @click="submitHandle" :disabled="loading">{{
+            $t('common.create')
+          }}</el-button>
+          <el-button @click="showInput = false" :disabled="loading">{{
+            $t('common.cancel')
+          }}</el-button>
         </div>
         <div v-else @click="quickCreateHandle" class="w-full">
           <el-button type="primary" link class="quich-button">
-            <el-icon><Plus /></el-icon>
+            <AppIcon iconName="app-add-outlined"></AppIcon>
             <span class="ml-4">{{ quickCreatePlaceholder }}</span>
           </el-button>
         </div>
@@ -54,25 +58,29 @@ const { common } = useStore()
 const props = defineProps({
   paginationConfig: {
     type: Object,
-    default: () => {}
+    default: () => {},
   },
   quickCreate: {
     type: Boolean,
-    default: false
+    default: false,
   },
   quickCreateName: {
     type: String,
-    default: t('components.quickCreateName')
+    default: t('components.quickCreateName'),
   },
   quickCreatePlaceholder: {
     type: String,
-    default: t('components.quickCreatePlaceholder')
+    default: t('components.quickCreatePlaceholder'),
   },
   quickCreateMaxlength: {
     type: Number,
-    default: () => 0
+    default: () => 0,
   },
-  storeKey: String
+  storeKey: String,
+  maxTableHeight: {
+    type: Number,
+    default: 300,
+  },
 })
 const emit = defineEmits(['changePage', 'sizeChange', 'creatQuick'])
 
@@ -131,14 +139,14 @@ function clearSelection() {
   appTableRef.value?.clearSelection()
 }
 defineExpose({
-  clearSelection
+  clearSelection,
 })
 
 onMounted(() => {
-  tableHeight.value = window.innerHeight - 300
+  tableHeight.value = window.innerHeight - props.maxTableHeight
   window.onresize = () => {
     return (() => {
-      tableHeight.value = window.innerHeight - 300
+      tableHeight.value = window.innerHeight - props.maxTableHeight
     })()
   }
 })

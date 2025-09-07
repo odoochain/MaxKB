@@ -11,7 +11,7 @@ import json
 from rest_framework import status
 
 from common.handle.base_to_response import BaseToResponse
-from common.response import result
+from common.result import result
 
 
 class SystemToResponse(BaseToResponse):

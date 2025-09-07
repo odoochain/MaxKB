@@ -1,19 +1,20 @@
-import { hasPermission } from '@/utils/permission/index'
+import { hasPermission, set_next_route } from '@/utils/permission/index'
+import { getChildRouteList } from '@/router/common'
 import NProgress from 'nprogress'
+import { getPermissionRoute } from '@/router/common'
 import {
   createRouter,
   createWebHistory,
   type NavigationGuardNext,
   type RouteLocationNormalized,
-  type RouteRecordRaw,
-  type RouteRecordName
+  type RouteRecordName,
 } from 'vue-router'
 import useStore from '@/stores'
 import { routes } from '@/router/routes'
 NProgress.configure({ showSpinner: false, speed: 500, minimum: 0.3 })
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes: routes
+  history: createWebHistory(window.MaxKB?.prefix ? window.MaxKB?.prefix : import.meta.env.BASE_URL),
+  routes: routes,
 })
 
 // 路由前置拦截器
@@ -24,17 +25,17 @@ router.beforeEach(
       next()
       return
     }
-    const { user } = useStore()
-    const notAuthRouteNameList = ['register', 'login', 'forgot_password', 'reset_password', 'Chat']
+    const { user, login } = useStore()
 
+    const notAuthRouteNameList = ['login', 'ForgotPassword', 'ResetPassword', 'Chat', 'UserLogin']
     if (!notAuthRouteNameList.includes(to.name ? to.name.toString() : '')) {
       if (to.query && to.query.token) {
         localStorage.setItem('token', to.query.token.toString())
       }
-      const token = user.getToken()
+      const token = login.getToken()
       if (!token) {
         next({
-          path: '/login'
+          path: '/login',
         })
         return
       }
@@ -42,41 +43,32 @@ router.beforeEach(
         await user.profile()
       }
     }
+    set_next_route(to)
     // 判断是否有菜单权限
     if (to.meta.permission ? hasPermission(to.meta.permission as any, 'OR') : true) {
-      next()
+      if(to.name=='noPermissionD'){
+         const n = getPermissionRoute(routes, to)
+         if(n.name=='noPermission'){
+          next()
+          return
+         }else{
+          next(n)
+          return
+         }
+      }else{
+        next()
+      }
     } else {
-      // 如果没有权限则直接取404页面
-      next('404')
+      const n = getPermissionRoute(routes, to)
+      next(n)
     }
-  }
+  },
 )
 router.afterEach(() => {
   NProgress.done()
 })
-
 export const getChildRouteListByPathAndName = (path: any, name?: RouteRecordName | any) => {
   return getChildRouteList(routes, path, name)
-}
-
-export const getChildRouteList: (
-  routeList: Array<RouteRecordRaw>,
-  path: string,
-  name?: RouteRecordName | null | undefined
-) => Array<RouteRecordRaw> = (routeList, path, name) => {
-  for (let index = 0; index < routeList.length; index++) {
-    const route = routeList[index]
-    if (name === route.name && path === route.path) {
-      return route.children || []
-    }
-    if (route.children && route.children.length > 0) {
-      const result = getChildRouteList(route.children, path, name)
-      if (result && result?.length > 0) {
-        return result
-      }
-    }
-  }
-  return []
 }
 
 export default router

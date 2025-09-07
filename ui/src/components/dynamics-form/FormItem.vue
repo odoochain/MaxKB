@@ -34,7 +34,7 @@ import { ref, computed, onMounted, type Ref } from 'vue'
 import type { FormField } from '@/components/dynamics-form/type'
 import FormItemLabel from './FormItemLabel.vue'
 import type { Dict } from '@/api/type/common'
-import bus from '@/bus'
+import bus from '@/utils/bus'
 import { t } from '@/locales'
 const props = defineProps<{
   // 双向绑定的值
@@ -78,7 +78,7 @@ const itemValue = computed({
     } else {
       bus.emit(props.formfield.field, value)
     }
-  }
+  },
 })
 const componentFormRef = ref<any>()
 const label_attrs = computed(() => {
@@ -130,7 +130,7 @@ const rules = computed(() => {
     : {
         message: errMsg.value,
         trigger: props.formfield.input_type === 'Slider' ? 'blur' : ['blur', 'change'],
-        required: props.formfield.required === false ? false : true
+        required: props.formfield.required === false ? false : true,
       }
 })
 

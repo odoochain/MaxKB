@@ -1,28 +1,26 @@
 # coding=utf-8
 
-import logging
 import datetime
 
 from django.db import transaction
-from django.utils import timezone
-from apscheduler.schedulers.background import BackgroundScheduler
-from django_apscheduler.jobstores import DjangoJobStore
-from application.models import Application, Chat, ChatRecord
 from django.db.models import Q, Max
-from common.lock.impl.file_lock import FileLock
-from dataset.models import File
+from django.utils import timezone
 
-
-from django.db import connection
-
-scheduler = BackgroundScheduler()
-scheduler.add_jobstore(DjangoJobStore(), "default")
-lock = FileLock()
+from application.models import Application, Chat, ChatRecord
+from common.job.scheduler import scheduler
+from common.utils.lock import lock, RedisLock
+from common.utils.logger import maxkb_logger
+from knowledge.models import File
 
 
 def clean_chat_log_job():
+    clean_chat_log_job_lock()
+
+
+@lock(lock_key='clean_chat_log_job_execute', timeout=30)
+def clean_chat_log_job_lock():
     from django.utils.translation import gettext_lazy as _
-    logging.getLogger("max_kb").info(_('start clean chat log'))
+    maxkb_logger.info(_('start clean chat log'))
     now = timezone.now()
 
     applications = Application.objects.all().values('id', 'clean_time')
@@ -68,16 +66,18 @@ def clean_chat_log_job():
             if deleted_count < batch_size:
                 break
 
-    logging.getLogger("max_kb").info(_('end clean chat log'))
+    maxkb_logger.info(_('end clean chat log'))
 
 
 def run():
-    if lock.try_lock('clean_chat_log_job', 30 * 30):
+    rlock = RedisLock()
+    if rlock.try_lock('clean_chat_log_job', 30 * 30):
         try:
-            scheduler.start()
+            maxkb_logger.debug('get lock clean_chat_log_job')
+
             existing_job = scheduler.get_job(job_id='clean_chat_log')
             if existing_job is not None:
                 existing_job.remove()
             scheduler.add_job(clean_chat_log_job, 'cron', hour='0', minute='5', id='clean_chat_log')
         finally:
-            lock.un_lock('clean_chat_log_job')
+            rlock.un_lock('clean_chat_log_job')

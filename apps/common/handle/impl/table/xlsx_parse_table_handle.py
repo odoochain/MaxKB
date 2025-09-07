@@ -1,16 +1,16 @@
 # coding=utf-8
 import io
 import logging
+import traceback
 
 from openpyxl import load_workbook
 
 from common.handle.base_parse_table_handle import BaseParseTableHandle
-from common.handle.impl.tools import xlsx_embed_cells_images
+from common.handle.impl.common_handle import xlsx_embed_cells_images
+from common.utils.logger import maxkb_logger
 
-max_kb = logging.getLogger("max_kb")
 
-
-class XlsxSplitHandle(BaseParseTableHandle):
+class XlsxParseTableHandle(BaseParseTableHandle):
     def support(self, file, get_buffer):
         file_name: str = file.name.lower()
         if file_name.endswith('.xlsx'):
@@ -43,7 +43,7 @@ class XlsxSplitHandle(BaseParseTableHandle):
 
                 image = image_dict.get(cell_value, None)
                 if image is not None:
-                    cell_value = f'![](/api/image/{image.id})'
+                    cell_value = f'![](./oss/file/{image.id})'
 
                 # 使用标题作为键，单元格的值作为值存入字典
                 row_data[headers[col_idx]] = cell_value
@@ -74,10 +74,9 @@ class XlsxSplitHandle(BaseParseTableHandle):
                 result.append({'name': sheetname, 'paragraphs': paragraphs})
 
         except BaseException as e:
-            max_kb.error(f'excel split handle error: {e}')
+            maxkb_logger.error(f"Error processing XLSX file {file.name}: {e}, {traceback.format_exc()}")
             return [{'name': file.name, 'paragraphs': []}]
         return result
-
 
     def get_content(self, file, save_image):
         try:
@@ -88,7 +87,7 @@ class XlsxSplitHandle(BaseParseTableHandle):
                 if len(image_dict) > 0:
                     save_image(image_dict.values())
             except Exception as e:
-                print(f'{e}')
+                maxkb_logger.error(f'Exception: {e}')
                 image_dict = {}
             md_tables = ''
             # 如果未指定 sheet_name，则使用第一个工作表
@@ -111,7 +110,6 @@ class XlsxSplitHandle(BaseParseTableHandle):
 
                 md_tables += md_table + '\n\n'
 
-                md_tables = md_tables.replace('/api/image/', '/api/file/')
             return md_tables
         except Exception as e:
             max_kb.error(f'excel split handle error: {e}')

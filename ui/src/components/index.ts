@@ -1,58 +1,61 @@
 import { type App } from 'vue'
-import AppIcon from './icons/AppIcon.vue'
-import AppAvatar from './app-avatar/index.vue'
-import LoginLayout from './login-layout/index.vue'
-import LoginContainer from './login-container/index.vue'
+import LogoFull from './logo/LogoFull.vue'
+import LogoIcon from './logo/LogoIcon.vue'
+import SendIcon from './logo/SendIcon.vue'
+import dynamicsForm from './dynamics-form'
+import AppIcon from './app-icon/AppIcon.vue'
 import LayoutContainer from './layout-container/index.vue'
-import TagsInput from './tags-input/index.vue'
+import ContentContainer from './layout-container/ContentContainer.vue'
 import CardBox from './card-box/index.vue'
-import CardAdd from './card-add/index.vue'
+import FolderTree from './folder-tree/index.vue'
+import CommonList from './common-list/index.vue'
 import BackButton from './back-button/index.vue'
 import AppTable from './app-table/index.vue'
-import ReadWrite from './read-write/index.vue'
-import TagEllipsis from './tag-ellipsis/index.vue'
-import CommonList from './common-list/index.vue'
-import dynamicsForm from './dynamics-form'
-import CardCheckbox from './card-checkbox/index.vue'
-import AiChat from './ai-chat/index.vue'
+import CodemirrorEditor from './codemirror-editor/index.vue'
 import InfiniteScroll from './infinite-scroll/index.vue'
+import ModelSelect from './model-select/index.vue'
+import ReadWrite from './read-write/index.vue'
 import AutoTooltip from './auto-tooltip/index.vue'
 import MdEditor from './markdown/MdEditor.vue'
 import MdPreview from './markdown/MdPreview.vue'
 import MdEditorMagnify from './markdown/MdEditorMagnify.vue'
-import LogoFull from './logo/LogoFull.vue'
-import LogoIcon from './logo/LogoIcon.vue'
-import SendIcon from './logo/SendIcon.vue'
-import CodemirrorEditor from './codemirror-editor/index.vue'
-import ModelSelect from './model-select/index.vue'
-
+import TagEllipsis from './tag-ellipsis/index.vue'
+import CardCheckbox from './card-checkbox/index.vue'
+import AiChat from './ai-chat/index.vue'
+import KnowledgeIcon from './app-icon/KnowledgeIcon.vue'
+import ToolIcon from './app-icon/ToolIcon.vue'
+import TagGroup from './tag-group/index.vue'
+import WorkspaceDropdown from './workspace-dropdown/index.vue'
+import FolderBreadcrumb from './folder-breadcrumb/index.vue'
 export default {
   install(app: App) {
-    app.component(AppIcon.name, AppIcon)
-    app.component(AppAvatar.name, AppAvatar)
-    app.component(LoginLayout.name, LoginLayout)
-    app.component(LoginContainer.name, LoginContainer)
-    app.component(LayoutContainer.name, LayoutContainer)
-    app.component(TagsInput.name, TagsInput)
-    app.component(CardBox.name, CardBox)
-    app.component(CardAdd.name, CardAdd)
-    app.component(BackButton.name, BackButton)
-    app.component(AppTable.name, AppTable)
-    app.component(ReadWrite.name, ReadWrite)
-    app.component(TagEllipsis.name, TagEllipsis)
-    app.component(CommonList.name, CommonList)
+    app.component('LogoFull', LogoFull)
+    app.component('LogoIcon', LogoIcon)
+    app.component('SendIcon', SendIcon)
     app.use(dynamicsForm)
-    app.component(CardCheckbox.name, CardCheckbox)
-    app.component(AiChat.name, AiChat)
-    app.component(InfiniteScroll.name, InfiniteScroll)
-    app.component(AutoTooltip.name, AutoTooltip)
-    app.component(MdPreview.name, MdPreview)
-    app.component(MdEditor.name, MdEditor)
-    app.component(LogoFull.name, LogoFull)
-    app.component(LogoIcon.name, LogoIcon)
-    app.component(SendIcon.name, SendIcon)
-    app.component(CodemirrorEditor.name, CodemirrorEditor)
-    app.component(MdEditorMagnify.name, MdEditorMagnify)
-    app.component(ModelSelect.name, ModelSelect)
-  }
+    app.component('AppIcon', AppIcon)
+    app.component('LayoutContainer', LayoutContainer)
+    app.component('ContentContainer', ContentContainer)
+    app.component('CardBox', CardBox)
+    app.component('FolderTree', FolderTree)
+    app.component('CommonList', CommonList)
+    app.component('BackButton', BackButton)
+    app.component('AppTable', AppTable)
+    app.component('CodemirrorEditor', CodemirrorEditor)
+    app.component('InfiniteScroll', InfiniteScroll)
+    app.component('ModelSelect', ModelSelect)
+    app.component('ReadWrite', ReadWrite)
+    app.component('AutoTooltip', AutoTooltip)
+    app.component('MdPreview', MdPreview)
+    app.component('MdEditor', MdEditor)
+    app.component('MdEditorMagnify', MdEditorMagnify)
+    app.component('TagEllipsis', TagEllipsis)
+    app.component('CardCheckbox', CardCheckbox)
+    app.component('AiChat', AiChat)
+    app.component('KnowledgeIcon', KnowledgeIcon)
+    app.component('ToolIcon', ToolIcon)
+    app.component('TagGroup', TagGroup)
+    app.component('WorkspaceDropdown', WorkspaceDropdown)
+    app.component('FolderBreadcrumb', FolderBreadcrumb)
+  },
 }

@@ -1,7 +1,7 @@
 # coding=utf-8
 """
     @project: qabot
-    @Author：虎
+    @Author：虎虎
     @file： authenticate.py
     @date：2023/9/4 11:16
     @desc:  认证类
@@ -12,17 +12,33 @@ from importlib import import_module
 from django.conf import settings
 from django.core import cache
 from django.core import signing
+from django.utils.translation import gettext_lazy as _
+from drf_spectacular.extensions import OpenApiAuthenticationExtension
 from rest_framework.authentication import TokenAuthentication
 
 from common.exception.app_exception import AppAuthenticationFailed, AppEmbedIdentityFailed, AppChatNumOutOfBoundsFailed, \
-    ChatException, AppApiException
-from django.utils.translation import gettext_lazy as _
-token_cache = cache.caches['token_cache']
+    AppApiException
+
+token_cache = cache.caches['default']
 
 
 class AnonymousAuthentication(TokenAuthentication):
     def authenticate(self, request):
         return None, None
+
+
+class AnonymousAuthenticationScheme(OpenApiAuthenticationExtension):
+    target_class = AnonymousAuthentication  # 绑定到你的自定义认证类
+    name = "AnonymousAuth"  # 自定义认证名称（显示在 Swagger UI 中）
+
+    def get_security_definition(self, auto_schema):
+        # 定义认证方式，这里假设匿名认证不需要凭证
+        return {
+        }
+
+    def get_security_requirement(self, auto_schema):
+        # 返回安全要求（空字典表示无需认证）
+        return {}
 
 
 def new_instance_by_class_path(class_path: str):
@@ -53,42 +69,26 @@ class TokenDetails:
         return self.token_details
 
 
-class OpenAIKeyAuth(TokenAuthentication):
-    def authenticate(self, request):
-        auth = request.META.get('HTTP_AUTHORIZATION')
-        auth = auth.replace('Bearer ', '')
-        # 未认证
-        if auth is None:
-            raise AppAuthenticationFailed(1003, _('Not logged in, please log in first'))
-        try:
-            token_details = TokenDetails(auth)
-            for handle in handles:
-                if handle.support(request, auth, token_details.get_token_details):
-                    return handle.handle(request, auth, token_details.get_token_details)
-            raise AppAuthenticationFailed(1002, _('Authentication information is incorrect! illegal user'))
-        except Exception as e:
-            traceback.format_exc()
-            if isinstance(e, AppEmbedIdentityFailed) or isinstance(e, AppChatNumOutOfBoundsFailed) or isinstance(e,
-                                                                                                                 AppApiException):
-                raise e
-            raise AppAuthenticationFailed(1002, _('Authentication information is incorrect! illegal user'))
-
-
 class TokenAuth(TokenAuthentication):
+    keyword = "Bearer"
+
     # 重新 authenticate 方法，自定义认证规则
     def authenticate(self, request):
         auth = request.META.get('HTTP_AUTHORIZATION')
         # 未认证
         if auth is None:
             raise AppAuthenticationFailed(1003, _('Not logged in, please log in first'))
+        if not auth.startswith("Bearer "):
+            raise AppAuthenticationFailed(1002, _('Authentication information is incorrect! illegal user'))
         try:
-            token_details = TokenDetails(auth)
+            token = auth[7:]
+            token_details = TokenDetails(token)
             for handle in handles:
-                if handle.support(request, auth, token_details.get_token_details):
-                    return handle.handle(request, auth, token_details.get_token_details)
+                if handle.support(request, token, token_details.get_token_details):
+                    return handle.handle(request, token, token_details.get_token_details)
             raise AppAuthenticationFailed(1002, _('Authentication information is incorrect! illegal user'))
         except Exception as e:
-            traceback.format_exc()
+            traceback.print_stack()
             if isinstance(e, AppEmbedIdentityFailed) or isinstance(e, AppChatNumOutOfBoundsFailed) or isinstance(e,
                                                                                                                  AppApiException):
                 raise e

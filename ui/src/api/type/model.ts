@@ -1,4 +1,3 @@
-import { store } from '@/stores'
 import type { Dict } from './common'
 interface modelRequest {
   name: string
@@ -38,6 +37,8 @@ interface ListModelRequest {
    * 供应商
    */
   provider?: string
+
+  workspace_id?: string
 }
 
 interface Model {
@@ -55,7 +56,7 @@ interface Model {
   model_type: string
   user_id: string
   username: string
-  permission_type: 'PUBLIC' | 'PRIVATE'
+  nick_name: string
   /**
    * 基础模型
    */

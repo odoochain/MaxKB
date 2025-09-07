@@ -1,5 +1,5 @@
 <template>
-  <AppAvatar
+  <el-avatar
     v-if="isAppIcon(item?.icon)"
     shape="square"
     :size="32"
@@ -7,18 +7,11 @@
     class="mr-8"
   >
     <img :src="item?.icon" alt="" />
-  </AppAvatar>
-  <AppAvatar
-    v-else-if="item?.name"
-    :name="item?.name"
-    pinyinColor
-    shape="square"
-    :size="32"
-    class="mr-8"
-  />
+  </el-avatar>
+  <LogoIcon v-else height="32px" />
 </template>
 <script setup lang="ts">
-import { isAppIcon } from '@/utils/application'
+import { isAppIcon } from '@/utils/common'
 const props = defineProps<{
   item: {
     name: string

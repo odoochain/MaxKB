@@ -16,9 +16,8 @@ from rest_framework import serializers
 
 from application.chat_pipeline.I_base_chat_pipeline import IBaseChatPipelineStep, ParagraphPipelineModel
 from application.chat_pipeline.pipeline_manage import PipelineManage
-from application.serializers.application_serializers import NoReferencesSetting
+from application.serializers.application import NoReferencesSetting
 from common.field.common import InstanceField
-from common.util.field_message import ErrMessage
 
 
 class ModelField(serializers.Field):
@@ -45,7 +44,7 @@ class PostResponseHandler:
     @abstractmethod
     def handler(self, chat_id, chat_record_id, paragraph_list: List[ParagraphPipelineModel], problem_text: str,
                 answer_text,
-                manage, step, padding_problem_text: str = None, client_id=None, **kwargs):
+                manage, step, padding_problem_text: str = None, **kwargs):
         pass
 
 
@@ -53,35 +52,36 @@ class IChatStep(IBaseChatPipelineStep):
     class InstanceSerializer(serializers.Serializer):
         # 对话列表
         message_list = serializers.ListField(required=True, child=MessageField(required=True),
-                                             error_messages=ErrMessage.list(_("Conversation list")))
-        model_id = serializers.UUIDField(required=False, allow_null=True, error_messages=ErrMessage.uuid(_("Model id")))
+                                             label=_("Conversation list"))
+        model_id = serializers.UUIDField(required=False, allow_null=True, label=_("Model id"))
         # 段落列表
-        paragraph_list = serializers.ListField(error_messages=ErrMessage.list(_("Paragraph List")))
+        paragraph_list = serializers.ListField(label=_("Paragraph List"))
         # 对话id
-        chat_id = serializers.UUIDField(required=True, error_messages=ErrMessage.uuid(_("Conversation ID")))
+        chat_id = serializers.UUIDField(required=True, label=_("Conversation ID"))
         # 用户问题
-        problem_text = serializers.CharField(required=True, error_messages=ErrMessage.uuid(_("User Questions")))
+        problem_text = serializers.CharField(required=True, label=_("User Questions"))
         # 后置处理器
         post_response_handler = InstanceField(model_type=PostResponseHandler,
-                                              error_messages=ErrMessage.base(_("Post-processor")))
+                                              label=_("Post-processor"))
         # 补全问题
         padding_problem_text = serializers.CharField(required=False,
-                                                     error_messages=ErrMessage.base(_("Completion Question")))
+                                                     label=_("Completion Question"))
         # 是否使用流的形式输出
-        stream = serializers.BooleanField(required=False, error_messages=ErrMessage.base(_("Streaming Output")))
-        client_id = serializers.CharField(required=True, error_messages=ErrMessage.char(_("Client id")))
-        client_type = serializers.CharField(required=True, error_messages=ErrMessage.char(_("Client Type")))
+        stream = serializers.BooleanField(required=False, label=_("Streaming Output"))
+        chat_user_id = serializers.CharField(required=True, label=_("Chat user id"))
+
+        chat_user_type = serializers.CharField(required=True, label=_("Chat user Type"))
         # 未查询到引用分段
         no_references_setting = NoReferencesSetting(required=True,
-                                                    error_messages=ErrMessage.base(_("No reference segment settings")))
+                                                    label=_("No reference segment settings"))
 
-        user_id = serializers.UUIDField(required=True, error_messages=ErrMessage.uuid(_("User ID")))
+        workspace_id = serializers.CharField(required=True, label=_("Workspace ID"))
 
         model_setting = serializers.DictField(required=True, allow_null=True,
-                                              error_messages=ErrMessage.dict(_("Model settings")))
+                                              label=_("Model settings"))
 
         model_params_setting = serializers.DictField(required=False, allow_null=True,
-                                                     error_messages=ErrMessage.dict(_("Model parameter settings")))
+                                                     label=_("Model parameter settings"))
 
         def is_valid(self, *, raise_exception=False):
             super().is_valid(raise_exception=True)
@@ -102,9 +102,9 @@ class IChatStep(IBaseChatPipelineStep):
                 chat_id, problem_text,
                 post_response_handler: PostResponseHandler,
                 model_id: str = None,
-                user_id: str = None,
+                workspace_id: str = None,
                 paragraph_list=None,
                 manage: PipelineManage = None,
-                padding_problem_text: str = None, stream: bool = True, client_id=None, client_type=None,
+                padding_problem_text: str = None, stream: bool = True, chat_user_id=None, chat_user_type=None,
                 no_references_setting=None, model_params_setting=None, model_setting=None, **kwargs):
         pass

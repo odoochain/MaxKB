@@ -47,7 +47,7 @@ const props = defineProps<{
 const router = useRouter()
 const route = useRoute()
 const {
-  params: { id, type }
+  params: { id, type, from },
 } = route as any
 
 function showMenu() {
@@ -58,9 +58,9 @@ function showMenu() {
   }
 }
 
-function clickHandle(item: any) {
-  if (isWorkFlow(type) && item.name === 'AppSetting') {
-    router.push({ path: `/application/${id}/workflow` })
+function clickHandle(item?: any) {
+  if (isWorkFlow(type) && item?.name === 'AppSetting') {
+    router.push({ path: `/application/${from}/${id}/workflow` })
   }
 }
 const menuIcon = computed(() => {
@@ -79,16 +79,16 @@ const menuIcon = computed(() => {
     margin-top: -2px;
   }
   .el-menu-item {
-    padding: 13px 12px 13px 16px !important;
+    padding: 13px 12px 13px 8px !important;
     font-weight: 500;
     border-radius: 4px;
     &:hover {
-      background: none;
-      color: var(--el-color-primary);
+      background: var(--app-text-color-light-1);
+      color: var(--el-menu-text-color);
     }
   }
   :deep(.el-sub-menu__title) {
-    padding: 13px 12px 13px 16px !important;
+    padding: 13px 12px 13px 10px !important;
     &:hover {
       background: none;
       color: var(--el-color-primary);

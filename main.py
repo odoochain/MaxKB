@@ -12,7 +12,7 @@ APP_DIR = os.path.join(BASE_DIR, 'apps')
 
 os.chdir(BASE_DIR)
 sys.path.insert(0, APP_DIR)
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "smartdoc.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "maxkb.settings")
 django.setup()
 
 
@@ -75,13 +75,13 @@ def dev():
         management.call_command('celery', 'celery')
     elif services.__contains__('local_model'):
         os.environ.setdefault('SERVER_NAME', 'local_model')
-        from smartdoc.const import CONFIG
+        from maxkb.const import CONFIG
         bind = f'{CONFIG.get("LOCAL_MODEL_HOST")}:{CONFIG.get("LOCAL_MODEL_PORT")}'
         management.call_command('runserver', bind)
 
 
 if __name__ == '__main__':
-    os.environ['HF_HOME'] = '/opt/maxkb/model/base'
+    os.environ['HF_HOME'] = '/opt/maxkb-app/model/base'
     parser = argparse.ArgumentParser(
         description="""
            qabot service control tools;

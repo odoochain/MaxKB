@@ -16,20 +16,20 @@
           :rules="{
             type: 'array',
             message: $t(
-              'views.applicationWorkflow.nodes.rerankerNode.rerankerContent.requiredMessage'
+              'views.applicationWorkflow.nodes.rerankerNode.rerankerContent.requiredMessage',
             ),
             trigger: 'change',
-            required: true
+            required: true,
           }"
         >
           <template #label>
             <div class="flex-between">
               <span
                 >{{ $t('views.applicationWorkflow.nodes.rerankerNode.rerankerContent.label')
-                }}<span class="danger">*</span></span
+                }}<span class="color-danger">*</span></span
               >
               <el-button @click="add_reranker_reference" link type="primary">
-                <el-icon class="mr-4"><Plus /></el-icon>
+                <AppIcon iconName="app-add-outlined"></AppIcon>
               </el-button>
             </div>
           </template>
@@ -38,6 +38,7 @@
             style="margin-bottom: 8px"
             v-for="(reranker_reference, index) in form_data.reranker_reference_list"
             :key="index"
+            class="w-full"
           >
             <el-col :span="22">
               <el-form-item
@@ -46,7 +47,7 @@
                   type: 'array',
                   required: true,
                   message: $t('views.applicationWorkflow.variable.placeholder'),
-                  trigger: 'change'
+                  trigger: 'change',
                 }"
               >
                 <NodeCascader
@@ -55,26 +56,30 @@
                   class="w-full"
                   :placeholder="
                     $t(
-                      'views.applicationWorkflow.nodes.rerankerNode.rerankerContent.requiredMessage'
+                      'views.applicationWorkflow.nodes.rerankerNode.rerankerContent.requiredMessage',
                     )
                   "
                   v-model="form_data.reranker_reference_list[index]"
                 />
               </el-form-item>
             </el-col>
-            <el-col :span="1">
-              <el-button link type="info" class="mt-4" @click="deleteCondition(index)">
-                <el-icon><Delete /></el-icon>
+            <el-col :span="2">
+              <el-button link type="info" @click="deleteCondition(index)">
+                <AppIcon iconName="app-delete"></AppIcon>
               </el-button>
             </el-col>
           </el-row>
         </el-form-item>
-        <el-form-item :label="$t('views.applicationWorkflow.nodes.searchDatasetNode.searchParam')">
+        <el-form-item
+          :label="$t('views.applicationWorkflow.nodes.searchKnowledgeNode.searchParam')"
+        >
           <template #label>
             <div class="flex-between">
-              <span>{{ $t('views.applicationWorkflow.nodes.searchDatasetNode.searchParam') }}</span>
+              <span>{{
+                $t('views.applicationWorkflow.nodes.searchKnowledgeNode.searchParam')
+              }}</span>
               <el-button type="primary" link @click="openParamSettingDialog">
-                <el-icon><Setting /></el-icon>
+                <AppIcon iconName="app-setting"></AppIcon>
               </el-button>
             </div>
           </template>
@@ -103,21 +108,21 @@
           </div>
         </el-form-item>
         <el-form-item
-          :label="$t('views.applicationWorkflow.nodes.searchDatasetNode.searchQuestion.label')"
+          :label="$t('views.applicationWorkflow.nodes.searchKnowledgeNode.searchQuestion.label')"
           prop="question_reference_address"
           :rules="{
             message: $t(
-              'views.applicationWorkflow.nodes.searchDatasetNode.searchQuestion.requiredMessage'
+              'views.applicationWorkflow.nodes.searchKnowledgeNode.searchQuestion.requiredMessage',
             ),
             trigger: 'blur',
-            required: true
+            required: true,
           }"
         >
           <template #label>
             <div class="flex-between">
               <span
-                >{{ $t('views.applicationWorkflow.nodes.searchDatasetNode.searchQuestion.label')
-                }}<span class="danger">*</span></span
+                >{{ $t('views.applicationWorkflow.nodes.searchKnowledgeNode.searchQuestion.label')
+                }}<span class="color-danger">*</span></span
               >
             </div>
           </template>
@@ -126,7 +131,7 @@
             :nodeModel="nodeModel"
             class="w-full"
             :placeholder="
-              $t('views.applicationWorkflow.nodes.searchDatasetNode.searchQuestion.label')
+              $t('views.applicationWorkflow.nodes.searchKnowledgeNode.searchQuestion.label')
             "
             v-model="form_data.question_reference_address"
           />
@@ -137,14 +142,14 @@
           :rules="{
             required: true,
             message: $t('views.applicationWorkflow.nodes.rerankerNode.reranker_model.placeholder'),
-            trigger: 'change'
+            trigger: 'change',
           }"
         >
           <template #label>
             <div class="flex-between">
               <span
                 >{{ $t('views.applicationWorkflow.nodes.rerankerNode.reranker_model.label')
-                }}<span class="danger">*</span></span
+                }}<span class="color-danger">*</span></span
               >
             </div>
           </template>
@@ -152,11 +157,22 @@
             @wheel="wheel"
             :teleported="false"
             v-model="form_data.reranker_model_id"
-            :placeholder="$t('views.applicationWorkflow.nodes.rerankerNode.reranker_model.placeholder')"
+            :placeholder="
+              $t('views.applicationWorkflow.nodes.rerankerNode.reranker_model.placeholder')
+            "
             :options="modelOptions"
-            @submitModel="getModel"
+            @submitModel="getSelectModel"
             showFooter
+            :model-type="'RERANKER'"
           ></ModelSelect>
+        </el-form-item>
+        <el-form-item
+          :label="$t('views.applicationWorkflow.nodes.searchKnowledgeNode.showKnowledge.label')"
+          prop="show_knowledge"
+          required
+          @click.prevent
+        >
+          <el-switch size="small" v-model="form_data.show_knowledge" />
         </el-form-item>
       </el-form>
     </el-card>
@@ -168,19 +184,27 @@ import { set, cloneDeep, groupBy } from 'lodash'
 import NodeContainer from '@/workflow/common/NodeContainer.vue'
 import NodeCascader from '@/workflow/common/NodeCascader.vue'
 import ParamSettingDialog from './ParamSettingDialog.vue'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, inject } from 'vue'
+import { useRoute } from 'vue-router'
+import { loadSharedApi } from '@/utils/dynamics-api/shared-api'
+const getApplicationDetail = inject('getApplicationDetail') as any
+const route = useRoute()
 
-import applicationApi from '@/api/application'
-import useStore from '@/stores'
-import { app } from '@/main'
+const {
+  params: { id },
+} = route as any
 
-const { model } = useStore()
+const apiType = computed(() => {
+  if (route.path.includes('resource-management')) {
+    return 'systemManage'
+  } else {
+    return 'workspace'
+  }
+})
 const props = defineProps<{ nodeModel: any }>()
 
 const ParamSettingDialogRef = ref<InstanceType<typeof ParamSettingDialog>>()
-const {
-  params: { id }
-} = app.config.globalProperties.$route as any
+
 const form = {
   reranker_reference_list: [[]],
   reranker_model_id: '',
@@ -188,8 +212,9 @@ const form = {
   reranker_setting: {
     top_n: 3,
     similarity: 0,
-    max_paragraph_char_number: 5000
-  }
+    max_paragraph_char_number: 5000,
+  },
+  show_knowledge: false,
 }
 
 const modelOptions = ref<any>(null)
@@ -221,21 +246,28 @@ const form_data = computed({
   },
   set: (value) => {
     set(props.nodeModel.properties, 'node_data', value)
-  }
+  },
 })
 function refreshParam(data: any) {
   set(props.nodeModel.properties.node_data, 'reranker_setting', data)
 }
-function getModel() {
-  if (id) {
-    applicationApi.getApplicationRerankerModel(id).then((res: any) => {
+
+const application = getApplicationDetail()
+function getSelectModel() {
+  const obj =
+    apiType.value === 'systemManage'
+      ? {
+          model_type: 'RERANKER',
+          workspace_id: application.value?.workspace_id,
+        }
+      : {
+          model_type: 'RERANKER',
+        }
+  loadSharedApi({ type: 'model', systemType: apiType.value })
+    .getSelectModelList(obj)
+    .then((res: any) => {
       modelOptions.value = groupBy(res?.data, 'provider')
     })
-  } else {
-    model.asyncGetModel({ model_type: 'RERANKER' }).then((res: any) => {
-      modelOptions.value = groupBy(res?.data, 'provider')
-    })
-  }
 }
 
 const add_reranker_reference = () => {
@@ -248,14 +280,17 @@ const nodeCascaderRef = ref()
 const validate = () => {
   return Promise.all([
     nodeCascaderRef.value ? nodeCascaderRef.value.validate() : Promise.resolve(''),
-    rerankerNodeFormRef.value?.validate()
+    rerankerNodeFormRef.value?.validate(),
   ]).catch((err: any) => {
     return Promise.reject({ node: props.nodeModel, errMessage: err })
   })
 }
 
 onMounted(() => {
-  getModel()
+  getSelectModel()
+  form_data.value.show_knowledge = form_data.value.show_knowledge
+    ? form_data.value.show_knowledge
+    : false
   set(props.nodeModel, 'validate', validate)
 })
 </script>

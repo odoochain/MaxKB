@@ -9,7 +9,7 @@
 import time
 from datetime import datetime
 from typing import List, Type
-
+from django.utils import timezone
 from rest_framework import serializers
 
 from application.flow.i_step_node import NodeResult
@@ -17,41 +17,54 @@ from application.flow.step_node.start_node.i_start_node import IStarNode
 
 
 def get_default_global_variable(input_field_list: List):
-    return {item.get('variable'): item.get('default_value') for item in input_field_list if
-            item.get('default_value', None) is not None}
+    return {
+        item.get('variable') or item.get('field'): item.get('default_value')
+        for item in input_field_list
+        if item.get('default_value', None) is not None
+    }
 
 
 def get_global_variable(node):
+    body = node.workflow_manage.get_body()
     history_chat_record = node.flow_params_serializer.data.get('history_chat_record', [])
     history_context = [{'question': chat_record.problem_text, 'answer': chat_record.answer_text} for chat_record in
                        history_chat_record]
     chat_id = node.flow_params_serializer.data.get('chat_id')
-    return {'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'start_time': time.time(),
-            'history_context': history_context, 'chat_id': str(chat_id), **node.workflow_manage.form_data}
+    return {'time': timezone.now().strftime('%Y-%m-%d %H:%M:%S'), 'start_time': time.time(),
+            'history_context': history_context, 'chat_id': str(chat_id), **node.workflow_manage.form_data,
+            'chat_user_id': body.get('chat_user_id'),
+            'chat_user_type': body.get('chat_user_type'),
+            'chat_user': body.get('chat_user')}
 
 
 class BaseStartStepNode(IStarNode):
     def save_context(self, details, workflow_manage):
         base_node = self.workflow_manage.get_base_node()
-        default_global_variable = get_default_global_variable(base_node.properties.get('input_field_list', []))
-        workflow_variable = {**default_global_variable, **get_global_variable(self)}
+        default_global_variable = get_default_global_variable(base_node.properties.get('user_input_field_list', []))
+        default_api_global_variable = get_default_global_variable(base_node.properties.get('api_input_field_list', []))
+        workflow_variable = {**default_global_variable, **default_api_global_variable, **get_global_variable(self)}
         self.context['question'] = details.get('question')
         self.context['run_time'] = details.get('run_time')
         self.context['document'] = details.get('document_list')
         self.context['image'] = details.get('image_list')
         self.context['audio'] = details.get('audio_list')
+        self.context['other'] = details.get('other_list')
         self.status = details.get('status')
         self.err_message = details.get('err_message')
         for key, value in workflow_variable.items():
             workflow_manage.context[key] = value
+        for item in details.get('global_fields', []):
+            workflow_manage.context[item.get('key')] = item.get('value')
+        self.workflow_manage.chat_context = self.workflow_manage.get_chat_info().get_chat_variable()
 
     def get_node_params_serializer_class(self) -> Type[serializers.Serializer]:
         pass
 
     def execute(self, question, **kwargs) -> NodeResult:
         base_node = self.workflow_manage.get_base_node()
-        default_global_variable = get_default_global_variable(base_node.properties.get('input_field_list', []))
-        workflow_variable = {**default_global_variable, **get_global_variable(self)}
+        default_global_variable = get_default_global_variable(base_node.properties.get('user_input_field_list', []))
+        default_api_global_variable = get_default_global_variable(base_node.properties.get('api_input_field_list', []))
+        workflow_variable = {**default_global_variable, **default_api_global_variable, **get_global_variable(self)}
         """
         开始节点 初始化全局变量
         """
@@ -59,8 +72,11 @@ class BaseStartStepNode(IStarNode):
             'question': question,
             'image': self.workflow_manage.image_list,
             'document': self.workflow_manage.document_list,
-            'audio': self.workflow_manage.audio_list
+            'audio': self.workflow_manage.audio_list,
+            'other': self.workflow_manage.other_list,
+
         }
+        self.workflow_manage.chat_context = self.workflow_manage.get_chat_info().get_chat_variable()
         return NodeResult(node_variable, workflow_variable)
 
     def get_details(self, index: int, **kwargs):
@@ -83,5 +99,6 @@ class BaseStartStepNode(IStarNode):
             'image_list': self.context.get('image'),
             'document_list': self.context.get('document'),
             'audio_list': self.context.get('audio'),
+            'other_list': self.context.get('other'),
             'global_fields': global_fields
         }

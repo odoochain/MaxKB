@@ -16,51 +16,58 @@ from rest_framework.utils.formatting import lazy_format
 from application.chat_pipeline.I_base_chat_pipeline import ParagraphPipelineModel
 from application.chat_pipeline.step.search_dataset_step.i_search_dataset_step import ISearchDatasetStep
 from common.config.embedding_config import VectorStore, ModelManage
+from common.constants.permission_constants import RoleConstants
+from common.database_model_manage.database_model_manage import DatabaseModelManage
 from common.db.search import native_search
-from common.util.file_util import get_file_content
-from dataset.models import Paragraph, DataSet
-from embedding.models import SearchMode
-from setting.models import Model
-from setting.models_provider import get_model
-from smartdoc.conf import PROJECT_DIR
+from common.utils.common import get_file_content
+from knowledge.models import Paragraph, Knowledge
+from knowledge.models import SearchMode
+from maxkb.conf import PROJECT_DIR
+from models_provider.models import Model
+from models_provider.tools import get_model, get_model_by_id
 
 
-def get_model_by_id(_id, user_id):
-    model = QuerySet(Model).filter(id=_id).first()
-    if model is None:
-        raise Exception(_("Model does not exist"))
-    if model.permission_type == 'PRIVATE' and str(model.user_id) != str(user_id):
-        message = lazy_format(_('No permission to use this model {model_name}'), model_name=model.name)
-        raise Exception(message)
-    return model
+def reset_meta(meta):
+    if not meta.get('allow_download', False):
+        return {'allow_download': False}
+    return meta
 
 
-def get_embedding_id(dataset_id_list):
-    dataset_list = QuerySet(DataSet).filter(id__in=dataset_id_list)
-    if len(set([dataset.embedding_mode_id for dataset in dataset_list])) > 1:
-        raise Exception(_("The vector model of the associated knowledge base is inconsistent and the segmentation cannot be recalled."))
-    if len(dataset_list) == 0:
+def get_embedding_id(knowledge_id_list):
+    knowledge_list = QuerySet(Knowledge).filter(id__in=knowledge_id_list)
+    if len(set([knowledge.embedding_model_id for knowledge in knowledge_list])) > 1:
+        raise Exception(
+            _("The vector model of the associated knowledge base is inconsistent and the segmentation cannot be recalled."))
+    if len(knowledge_list) == 0:
         raise Exception(_("The knowledge base setting is wrong, please reset the knowledge base"))
-    return dataset_list[0].embedding_mode_id
+    return knowledge_list[0].embedding_model_id
 
 
 class BaseSearchDatasetStep(ISearchDatasetStep):
 
-    def execute(self, problem_text: str, dataset_id_list: list[str], exclude_document_id_list: list[str],
+    def execute(self, problem_text: str, knowledge_id_list: list[str], exclude_document_id_list: list[str],
                 exclude_paragraph_id_list: list[str], top_n: int, similarity: float, padding_problem_text: str = None,
                 search_mode: str = None,
-                user_id=None,
+                workspace_id=None,
+                manage=None,
                 **kwargs) -> List[ParagraphPipelineModel]:
-        if len(dataset_id_list) == 0:
+        get_knowledge_list_of_authorized = DatabaseModelManage.get_model('get_knowledge_list_of_authorized')
+        chat_user_type = manage.context.get('chat_user_type')
+        if get_knowledge_list_of_authorized is not None and RoleConstants.CHAT_USER.value.name == chat_user_type:
+            knowledge_id_list = get_knowledge_list_of_authorized(manage.context.get('chat_user_id'),
+                                                                 knowledge_id_list)
+        if len(knowledge_id_list) == 0:
             return []
         exec_problem_text = padding_problem_text if padding_problem_text is not None else problem_text
-        model_id = get_embedding_id(dataset_id_list)
-        model = get_model_by_id(model_id, user_id)
+        model_id = get_embedding_id(knowledge_id_list)
+        model = get_model_by_id(model_id, workspace_id)
+        if model.model_type != "EMBEDDING":
+            raise Exception(_("Model does not exist"))
         self.context['model_name'] = model.name
         embedding_model = ModelManage.get_model(model_id, lambda _id: get_model(model))
         embedding_value = embedding_model.embed_query(exec_problem_text)
         vector = VectorStore.get_embedding_vector()
-        embedding_list = vector.query(exec_problem_text, embedding_value, dataset_id_list, exclude_document_id_list,
+        embedding_list = vector.query(exec_problem_text, embedding_value, knowledge_id_list, exclude_document_id_list,
                                       exclude_paragraph_id_list, True, top_n, similarity, SearchMode(search_mode))
         if embedding_list is None:
             return []
@@ -78,11 +85,12 @@ class BaseSearchDatasetStep(ISearchDatasetStep):
                     .add_paragraph(paragraph)
                     .add_similarity(find_embedding.get('similarity'))
                     .add_comprehensive_score(find_embedding.get('comprehensive_score'))
-                    .add_dataset_name(paragraph.get('dataset_name'))
+                    .add_knowledge_name(paragraph.get('knowledge_name'))
+                    .add_knowledge_type(paragraph.get('knowledge_type'))
                     .add_document_name(paragraph.get('document_name'))
                     .add_hit_handling_method(paragraph.get('hit_handling_method'))
                     .add_directly_return_similarity(paragraph.get('directly_return_similarity'))
-                    .add_meta(paragraph.get('meta'))
+                    .add_meta(reset_meta(paragraph.get('meta')))
                     .build())
 
     @staticmethod
@@ -102,7 +110,7 @@ class BaseSearchDatasetStep(ISearchDatasetStep):
         paragraph_list = native_search(QuerySet(Paragraph).filter(id__in=paragraph_id_list),
                                        get_file_content(
                                            os.path.join(PROJECT_DIR, "apps", "application", 'sql',
-                                                        'list_dataset_paragraph_by_paragraph_id.sql')),
+                                                        'list_knowledge_paragraph_by_paragraph_id.sql')),
                                        with_table_name=True)
         # 如果向量库中存在脏数据 直接删除
         if len(paragraph_list) != len(paragraph_id_list):

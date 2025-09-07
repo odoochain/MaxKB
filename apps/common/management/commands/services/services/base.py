@@ -16,7 +16,7 @@ class BaseService(object):
         self.STOP_TIMEOUT = 10
         self.max_retry = 0
         self.retry = 3
-        self.LOG_KEEP_DAYS = 7
+        self.LOG_KEEP_DAYS = int(CONFIG.get('LOG_RETENTION_DAYS', 7))
         self.EXIT_EVENT = threading.Event()
 
     @property
@@ -160,7 +160,6 @@ class BaseService(object):
 
     def _check(self):
         now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        print(f"{now} Check service status: {self.name} -> ", end='')
         if self.process:
             try:
                 self.process.wait(1)  # 不wait，子进程可能无法回收
@@ -168,9 +167,9 @@ class BaseService(object):
                 pass
 
         if self.is_running:
-            print(f'running at {self.pid}')
+            logging.debug(f"{now} Check service status: {self.name} -> running at {self.pid}")
         else:
-            print(f'stopped at {self.pid}')
+            logging.debug(f"{now} Check service status: {self.name} -> stopped at {self.pid}")
 
     def _restart(self):
         if self.retry > self.max_retry:

@@ -20,13 +20,13 @@
         link
         >{{ $t('chat.operation.continue') }}
       </el-button>
-      <el-button type="primary" v-else-if="!chatRecord.write_ed" @click="stopChat(chatRecord)" link
+      <!-- <el-button type="primary" v-else-if="!chatRecord.write_ed" @click="stopChat(chatRecord)" link
         >{{ $t('chat.operation.stopChat') }}
-      </el-button>
+      </el-button> -->
     </div>
 
     <ChatOperationButton
-      v-if="chatRecord.write_ed && 500 != chatRecord.status"
+      v-show="chatRecord.write_ed && 500 != chatRecord.status"
       :tts="application.tts_model_enable"
       :tts_type="application.tts_type"
       :tts_autoplay="application.tts_autoplay"

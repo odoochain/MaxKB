@@ -4,7 +4,7 @@
       <template v-for="(item, index) in data" :key="index">
         <li
           @click.stop="clickHandle(item, index)"
-          :class="current === item[props.valueKey] ? 'active' : ''"
+          :class="current === item[props.valueKey] ? 'active color-primary-1' : ''"
           class="cursor"
           @mouseenter.stop="mouseenter(item)"
           @mouseleave.stop="mouseleave()"
@@ -32,18 +32,18 @@ const props = withDefaults(
   {
     data: () => [],
     defaultActive: '',
-    valueKey: 'id'
-  }
+    valueKey: 'id',
+  },
 )
 
-const current = ref<Number | String>(0)
+const current = ref<number | string>(0)
 
 watch(
   () => props.defaultActive,
   (val) => {
     current.value = val
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const emit = defineEmits(['click', 'mouseenter', 'mouseleave'])
@@ -64,20 +64,22 @@ function clearCurrent() {
   current.value = 0
 }
 defineExpose({
-  clearCurrent
+  clearCurrent,
 })
 </script>
 <style lang="scss" scoped>
 /* 通用 ui li样式 */
 .common-list {
   li {
-    padding: 10px 16px;
+    padding: 8px;
     font-weight: 400;
-    color: var(--el-text-color-regular);
     font-size: 14px;
+    margin-bottom: 4px;
+    min-height: 24px;
+    line-height: 24px;
     &.active {
       background: var(--el-color-primary-light-9);
-      border-radius: 4px;
+      border-radius: var(--app-border-radius-base);
       color: var(--el-color-primary);
       font-weight: 500;
       &:hover {
@@ -85,8 +87,14 @@ defineExpose({
       }
     }
     &:hover {
-      border-radius: 4px;
+      border-radius: var(--app-border-radius-base);
       background: var(--app-text-color-light-1);
+    }
+    &.is-active {
+      &:hover {
+        color: var(--el-color-primary);
+        background: var(--el-color-primary-light-9);
+      }
     }
   }
 }

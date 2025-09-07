@@ -9,7 +9,8 @@ from django_celery_beat.models import (
     PeriodicTasks
 )
 
-from smartdoc.const import PROJECT_DIR
+from common.utils.logger import maxkb_logger
+from maxkb.const import PROJECT_DIR
 
 logger = logging.getLogger(__file__)
 
@@ -32,8 +33,8 @@ def get_celery_periodic_task(task_name):
     return task
 
 
-def make_dirs(name, mode=0o755, exist_ok=False):
-    """ 默认权限设置为 0o755 """
+def make_dirs(name, mode=0o700, exist_ok=False):
+    """ 默认权限设置为 0o700 """
     return os.makedirs(name, mode=mode, exist_ok=exist_ok)
 
 
@@ -62,7 +63,7 @@ def get_celery_status():
     active_queue_worker = set([n.split('@')[0] for n in active_nodes if n])
     # Celery Worker 数量: 2
     if len(active_queue_worker) < 2:
-        print("Not all celery worker worked")
+        maxkb_logger.info("Not all celery worker worked")
         return False
     else:
         return True

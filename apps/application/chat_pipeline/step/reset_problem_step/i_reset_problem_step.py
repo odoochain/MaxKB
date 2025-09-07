@@ -16,22 +16,20 @@ from application.chat_pipeline.I_base_chat_pipeline import IBaseChatPipelineStep
 from application.chat_pipeline.pipeline_manage import PipelineManage
 from application.models import ChatRecord
 from common.field.common import InstanceField
-from common.util.field_message import ErrMessage
 
 
 class IResetProblemStep(IBaseChatPipelineStep):
     class InstanceSerializer(serializers.Serializer):
         # 问题文本
-        problem_text = serializers.CharField(required=True, error_messages=ErrMessage.float(_("question")))
+        problem_text = serializers.CharField(required=True, label=_("question"))
         # 历史对答
         history_chat_record = serializers.ListField(child=InstanceField(model_type=ChatRecord, required=True),
-                                                    error_messages=ErrMessage.list(_("History Questions")))
+                                                    label=_("History Questions"))
         # 大语言模型
-        model_id = serializers.UUIDField(required=False, allow_null=True, error_messages=ErrMessage.uuid(_("Model id")))
-        user_id = serializers.UUIDField(required=True, error_messages=ErrMessage.uuid(_("User ID")))
+        model_id = serializers.UUIDField(required=False, allow_null=True, label=_("Model id"))
+        workspace_id = serializers.CharField(required=True, label=_("User ID"))
         problem_optimization_prompt = serializers.CharField(required=False, max_length=102400,
-                                                            error_messages=ErrMessage.char(
-                                                                _("Question completion prompt")))
+                                                            label=_("Question completion prompt"))
 
     def get_step_serializer(self, manage: PipelineManage) -> Type[serializers.Serializer]:
         return self.InstanceSerializer
@@ -52,6 +50,6 @@ class IResetProblemStep(IBaseChatPipelineStep):
     @abstractmethod
     def execute(self, problem_text: str, history_chat_record: List[ChatRecord] = None, model_id: str = None,
                 problem_optimization_prompt=None,
-                user_id=None,
+                workspace_id=None,
                 **kwargs):
         pass

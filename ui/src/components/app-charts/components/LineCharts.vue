@@ -4,24 +4,24 @@
 <script lang="ts" setup>
 import { onMounted, nextTick, watch, onBeforeUnmount } from 'vue'
 import * as echarts from 'echarts'
-import { numberFormat } from '@/utils/utils'
+import { numberFormat } from '@/utils/common'
 const props = defineProps({
   id: {
     type: String,
-    default: 'lineChartId'
+    default: 'lineChartId',
   },
   width: {
     type: String,
-    default: '100%'
+    default: '100%',
   },
   height: {
     type: String,
-    default: '200px'
+    default: '200px',
   },
   option: {
     type: Object,
-    required: true
-  } // option: { title , data }
+    required: true,
+  }, // option: { title , data }
 })
 
 const color = ['rgba(82, 133, 255, 1)', 'rgba(255, 207, 47, 1)']
@@ -38,14 +38,14 @@ function initChart() {
     props.option?.yData.forEach((item: any, index: number) => {
       series.push({
         itemStyle: {
-          color: color[index]
+          color: color[index],
         },
         areaStyle: item.area
           ? {
-              color: areaColor[index]
+              color: areaColor[index],
             }
           : null,
-        ...item
+        ...item,
       })
     })
   }
@@ -53,52 +53,46 @@ function initChart() {
     title: {
       text: props.option?.title,
       textStyle: {
-        fontSize: '16px'
-      }
+        fontSize: '16px',
+      },
     },
     tooltip: {
       trigger: 'axis',
-      valueFormatter: (value: any) => numberFormat(value)
-      // axisPointer: {
-      //   type: 'cross',
-      //   label: {
-      //     backgroundColor: '#6a7985'
-      //   }
-      // }
+      valueFormatter: (value: any) => numberFormat(value),
     },
     legend: {
       right: 0,
       itemWidth: 8,
       textStyle: {
-        color: '#646A73'
+        color: '#646A73',
       },
-      icon: 'circle'
+      icon: 'circle',
     },
     grid: {
       left: '1%',
       right: '1%',
       bottom: '0',
       top: '18%',
-      containLabel: true
+      containLabel: true,
     },
     xAxis: {
       type: 'category',
-      data: props.option.xData
+      data: props.option.xData,
     },
     yAxis: {
       type: 'value',
       splitLine: {
         lineStyle: {
-          color: '#EFF0F1'
-        }
+          color: '#EFF0F1',
+        },
       },
       axisLabel: {
         formatter: (value: any) => {
           return numberFormat(value)
-        }
-      }
+        },
+      },
     },
-    series: series
+    series: series,
   }
 
   // 渲染数据
@@ -117,7 +111,7 @@ watch(
         initChart()
       })
     }
-  }
+  },
 )
 
 onMounted(() => {
@@ -128,7 +122,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
-  echarts.getInstanceByDom(document.getElementById(props.id)!)?.dispose()
+  // echarts?.getInstanceByDom(document.getElementById(props.id)!)?.dispose()
   window.removeEventListener('resize', changeChartSize)
 })
 </script>

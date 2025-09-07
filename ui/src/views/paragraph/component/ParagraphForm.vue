@@ -54,7 +54,8 @@ const props = defineProps({
     type: Object,
     default: () => {}
   },
-  isEdit: Boolean
+  isEdit: Boolean,
+  knowledgeId: String
 })
 
 const toolbars = [
@@ -145,6 +146,8 @@ const onUploadImg = async (files: any, callback: any) => {
       return new Promise((rev, rej) => {
         const fd = new FormData()
         fd.append('file', file)
+        fd.append('source_id', props.knowledgeId as string)
+        fd.append('source_type', 'KNOWLEDGE')
 
         imageApi
           .postImage(fd)

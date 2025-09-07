@@ -56,25 +56,25 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import AppCharts from '@/components/app-charts/index.vue'
-import { getAttrsArray, getSum, numberFormat } from '@/utils/utils'
+import { getAttrsArray, getSum } from '@/utils/array'
+import { numberFormat } from '@/utils/common'
 import { t } from '@/locales'
 const props = defineProps({
   data: {
     type: Array,
-    default: () => []
-  }
+    default: () => [],
+  },
 })
 const statisticsType = computed(() => [
   {
     id: 'customerCharts',
-    // @ts-ignore
     name: t('views.applicationOverview.monitor.charts.customerTotal'),
     icon: 'app-user',
     background: '#EBF1FF',
     color: '#3370FF',
     sum: [
       getSum(getAttrsArray(props.data, 'customer_num') || 0),
-      getSum(getAttrsArray(props.data, 'customer_added_count') || 0)
+      getSum(getAttrsArray(props.data, 'customer_added_count') || 0),
     ],
     option: {
       title: t('views.applicationOverview.monitor.charts.customerTotal'),
@@ -84,20 +84,20 @@ const statisticsType = computed(() => [
           name: t('views.applicationOverview.monitor.charts.customerTotal'),
           type: 'line',
           area: true,
-          data: getAttrsArray(props.data, 'customer_num')
+          data: getAttrsArray(props.data, 'customer_num'),
         },
         {
-          name:  t('views.applicationOverview.monitor.charts.customerNew'),
+          name: t('views.applicationOverview.monitor.charts.customerNew'),
           type: 'line',
           area: true,
-          data: getAttrsArray(props.data, 'customer_added_count')
-        }
-      ]
-    }
+          data: getAttrsArray(props.data, 'customer_added_count'),
+        },
+      ],
+    },
   },
   {
     id: 'chatRecordCharts',
-    name:  t('views.applicationOverview.monitor.charts.queryCount'),
+    name: t('views.applicationOverview.monitor.charts.queryCount'),
     icon: 'app-question',
     background: '#FFF3E5',
     color: '#FF8800',
@@ -108,10 +108,10 @@ const statisticsType = computed(() => [
       yData: [
         {
           type: 'line',
-          data: getAttrsArray(props.data, 'chat_record_count')
-        }
-      ]
-    }
+          data: getAttrsArray(props.data, 'chat_record_count'),
+        },
+      ],
+    },
   },
   {
     id: 'tokensCharts',
@@ -126,10 +126,10 @@ const statisticsType = computed(() => [
       yData: [
         {
           type: 'line',
-          data: getAttrsArray(props.data, 'tokens_num')
-        }
-      ]
-    }
+          data: getAttrsArray(props.data, 'tokens_num'),
+        },
+      ],
+    },
   },
   {
     id: 'starCharts',
@@ -139,7 +139,7 @@ const statisticsType = computed(() => [
     color: '#F54A45',
     sum: [
       getSum(getAttrsArray(props.data, 'star_num') || 0),
-      getSum(getAttrsArray(props.data, 'trample_num') || 0)
+      getSum(getAttrsArray(props.data, 'trample_num') || 0),
     ],
     option: {
       title: t('views.applicationOverview.monitor.charts.userSatisfaction'),
@@ -148,16 +148,16 @@ const statisticsType = computed(() => [
         {
           name: t('views.applicationOverview.monitor.charts.approval'),
           type: 'line',
-          data: getAttrsArray(props.data, 'star_num')
+          data: getAttrsArray(props.data, 'star_num'),
         },
         {
           name: t('views.applicationOverview.monitor.charts.disapproval'),
           type: 'line',
-          data: getAttrsArray(props.data, 'trample_num')
-        }
-      ]
-    }
-  }
+          data: getAttrsArray(props.data, 'trample_num'),
+        },
+      ],
+    },
+  },
 ])
 </script>
 <style lang="scss" scoped></style>

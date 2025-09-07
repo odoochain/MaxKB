@@ -13,11 +13,11 @@ class TokenizerManage:
 
     @staticmethod
     def get_tokenizer():
-        from transformers import GPT2TokenizerFast
+        from transformers import BertTokenizer
         if TokenizerManage.tokenizer is None:
-            TokenizerManage.tokenizer = GPT2TokenizerFast.from_pretrained(
-                'gpt2',
-                cache_dir="/opt/maxkb/model/tokenizer",
+            TokenizerManage.tokenizer = BertTokenizer.from_pretrained(
+                'bert-base-cased',
+                cache_dir="/opt/maxkb-app/model/tokenizer",
                 local_files_only=True,
                 resume_download=False,
                 force_download=False)

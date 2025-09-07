@@ -1,10 +1,7 @@
 <template>
   <!-- 问题内容 -->
   <div class="question-content item-content mb-16 lighter">
-    <div
-      class="content mr-12 p-12-16 border-r-8"
-      :class="document_list.length >= 2 ? 'media_2' : `media_${document_list.length}`"
-    >
+    <div class="content p-12-16 border-r-8" :class="getClassName">
       <div class="text break-all pre-wrap">
         <div class="mb-8" v-if="document_list.length">
           <el-space wrap class="w-full media-file-width">
@@ -29,7 +26,7 @@
         <div class="mb-8" v-if="image_list.length">
           <el-space wrap>
             <template v-for="(item, index) in image_list" :key="index">
-              <div class="file cursor border-r-4" v-if="item.url">
+              <div class="file cursor border-r-6" v-if="item.url">
                 <el-image
                   :src="item.url"
                   :zoom-rate="1.2"
@@ -40,7 +37,7 @@
                   alt=""
                   fit="cover"
                   style="width: 170px; height: 170px; display: block"
-                  class="border-r-4"
+                  class="border-r-6"
                 />
               </div>
             </template>
@@ -49,21 +46,41 @@
         <div class="mb-8" v-if="audio_list.length">
           <el-space wrap>
             <template v-for="(item, index) in audio_list" :key="index">
-              <div class="file cursor border-r-4" v-if="item.url">
+              <div class="file cursor border-r-6" v-if="item.url">
                 <audio
                   :src="item.url"
                   controls
                   style="width: 350px; height: 43px"
-                  class="border-r-4"
+                  class="border-r-6"
                 />
               </div>
+            </template>
+          </el-space>
+        </div>
+        <div class="mb-8" v-if="other_list.length">
+          <el-space wrap class="w-full media-file-width">
+            <template v-for="(item, index) in other_list" :key="index">
+              <el-card shadow="never" style="--el-card-padding: 8px" class="download-file cursor">
+                <div class="download-button flex align-center" @click="downloadFile(item)">
+                  <el-icon class="mr-4">
+                    <Download />
+                  </el-icon>
+                  {{ $t('chat.download') }}
+                </div>
+                <div class="show flex align-center">
+                  <img :src="getImgUrl(item && item?.name)" alt="" width="24" />
+                  <div class="ml-4 ellipsis-1" :title="item && item?.name">
+                    {{ item && item?.name }}
+                  </div>
+                </div>
+              </el-card>
             </template>
           </el-space>
         </div>
         <span> {{ chatRecord.problem_text }}</span>
       </div>
     </div>
-    <div class="avatar">
+    <div class="avatar ml-8" v-if="showAvatar">
       <el-image
         v-if="application.user_avatar"
         :src="application.user_avatar"
@@ -71,28 +88,33 @@
         fit="cover"
         style="width: 28px; height: 28px; display: block"
       />
-      <AppAvatar v-else>
+      <el-avatar v-else :size="28">
         <img src="@/assets/user-icon.svg" style="width: 50%" alt="" />
-      </AppAvatar>
+      </el-avatar>
     </div>
   </div>
 </template>
 <script setup lang="ts">
 import { type chatType } from '@/api/type/application'
-import { getImgUrl, getAttrsArray, downloadByURL } from '@/utils/utils'
+import { getImgUrl, downloadByURL } from '@/utils/common'
+import { getAttrsArray } from '@/utils/array'
 import { onMounted, computed } from 'vue'
-
 const props = defineProps<{
   application: any
   chatRecord: chatType
   type: 'log' | 'ai-chat' | 'debug-ai-chat'
 }>()
+
+const showAvatar = computed(() => {
+  return props.application.show_user_avatar == undefined ? true : props.application.show_user_avatar
+})
+
 const document_list = computed(() => {
   if (props.chatRecord?.upload_meta) {
     return props.chatRecord.upload_meta?.document_list || []
   }
   const startNode = props.chatRecord.execution_details?.find(
-    (detail) => detail.type === 'start-node'
+    (detail) => detail.type === 'start-node',
   )
   return startNode?.document_list || []
 })
@@ -101,7 +123,7 @@ const image_list = computed(() => {
     return props.chatRecord.upload_meta?.image_list || []
   }
   const startNode = props.chatRecord.execution_details?.find(
-    (detail) => detail.type === 'start-node'
+    (detail) => detail.type === 'start-node',
   )
   return startNode?.image_list || []
 })
@@ -110,11 +132,28 @@ const audio_list = computed(() => {
     return props.chatRecord.upload_meta?.audio_list || []
   }
   const startNode = props.chatRecord.execution_details?.find(
-    (detail) => detail.type === 'start-node'
+    (detail) => detail.type === 'start-node',
   )
   return startNode?.audio_list || []
 })
-
+const other_list = computed(() => {
+  if (props.chatRecord?.upload_meta) {
+    return props.chatRecord.upload_meta?.other_list || []
+  }
+  const startNode = props.chatRecord.execution_details?.find(
+    (detail) => detail.type === 'start-node',
+  )
+  return startNode?.other_list || []
+})
+const getClassName = computed(() => {
+  return document_list.value.length >= 2 || other_list.value.length >= 2
+    ? 'media_2'
+    : document_list.value.length
+      ? `media_${document_list.value.length}`
+      : other_list.value.length
+        ? `media_${other_list.value.length}`
+        : `media_0`
+})
 function downloadFile(item: any) {
   downloadByURL(item.url, item.name)
 }
@@ -133,7 +172,6 @@ onMounted(() => {})
     background: #d6e2ff;
     padding-left: 16px;
     padding-right: 16px;
-
   }
 
   .download-file {
@@ -160,8 +198,7 @@ onMounted(() => {})
   }
   .media-file-width {
     :deep(.el-space__item) {
-      min-width: 40% !important;
-      flex-grow: 1;
+      width: 49% !important;
     }
   }
   .media_2 {

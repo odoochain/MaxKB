@@ -9,16 +9,17 @@
     :close-on-click-modal="false"
     :close-on-press-escape="false"
   >
-    <el-form label-position="top" ref="paramFormRef" :model="form" class="p-12-16">
+    <el-form label-position="top" ref="paramFormRef" :model="form">
       <el-text type="info" class="color-secondary">{{
-        $t('views.application.applicationForm.form.reasoningContent.tooltip')
+        $t('views.application.form.reasoningContent.tooltip')
       }}</el-text>
       <el-row class="mt-16" :gutter="20">
         <el-col :span="12">
           <el-form-item
-            :label="$t('views.application.applicationForm.form.reasoningContent.start')"
+            :label="$t('views.application.form.reasoningContent.start')"
           >
             <el-input
+              type="textarea"
               v-model="form.reasoning_content_start"
               :rows="6"
               maxlength="50"
@@ -27,8 +28,9 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item :label="$t('views.application.applicationForm.form.reasoningContent.end')">
+          <el-form-item :label="$t('views.application.form.reasoningContent.end')">
             <el-input
+              type="textarea"
               v-model="form.reasoning_content_end"
               :rows="6"
               maxlength="50"
@@ -82,26 +84,4 @@ const submit = () => {
 
 defineExpose({ open })
 </script>
-<style lang="scss" scoped>
-.param-dialog {
-  padding: 8px 8px 24px 8px;
-
-  .el-dialog__header {
-    padding: 16px 16px 0 16px;
-  }
-
-  .el-dialog__body {
-    padding: 0 !important;
-  }
-
-  .dialog-max-height {
-    height: 560px;
-  }
-
-  .custom-slider {
-    .el-input-number.is-without-controls .el-input__wrapper {
-      padding: 0 !important;
-    }
-  }
-}
-</style>
+<style lang="scss" scoped></style>

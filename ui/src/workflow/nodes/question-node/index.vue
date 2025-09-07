@@ -7,26 +7,25 @@
         :model="form_data"
         label-position="top"
         require-asterisk-position="right"
-        class="mb-24"
         label-width="auto"
         ref="questionNodeFormRef"
         hide-required-asterisk
       >
         <el-form-item
-          :label="$t('views.application.applicationForm.form.aiModel.label')"
+          :label="$t('views.application.form.aiModel.label')"
           prop="model_id"
           :rules="{
             required: true,
-            message: $t('views.application.applicationForm.form.aiModel.placeholder'),
-            trigger: 'change'
+            message: $t('views.application.form.aiModel.placeholder'),
+            trigger: 'change',
           }"
         >
           <template #label>
             <div class="flex-between">
               <div>
                 <span
-                  >{{ $t('views.application.applicationForm.form.aiModel.label')
-                  }}<span class="danger">*</span></span
+                  >{{ $t('views.application.form.aiModel.label')
+                  }}<span class="color-danger">*</span></span
                 >
               </div>
               <el-button
@@ -36,7 +35,7 @@
                 @click="openAIParamSettingDialog(form_data.model_id)"
                 @refreshForm="refreshParam"
               >
-                <el-icon><Setting /></el-icon>
+                <AppIcon iconName="app-setting"></AppIcon>
               </el-button>
             </div>
           </template>
@@ -45,56 +44,54 @@
             @wheel="wheel"
             :teleported="false"
             v-model="form_data.model_id"
-            :placeholder="$t('views.application.applicationForm.form.aiModel.placeholder')"
+            :placeholder="$t('views.application.form.aiModel.placeholder')"
             :options="modelOptions"
-            @submitModel="getModel"
+            @submitModel="getSelectModel"
             showFooter
+            :model-type="'LLM'"
           ></ModelSelect>
         </el-form-item>
-        <el-form-item :label="$t('views.application.applicationForm.form.roleSettings.label')">
+        <el-form-item :label="$t('views.application.form.roleSettings.label')">
           <MdEditorMagnify
-            :title="$t('views.application.applicationForm.form.roleSettings.label')"
+            :title="$t('views.application.form.roleSettings.label')"
             v-model="form_data.system"
             style="height: 100px"
             @submitDialog="submitSystemDialog"
-            :placeholder="$t('views.application.applicationForm.form.roleSettings.label')"
+            :placeholder="$t('views.application.form.roleSettings.label')"
           />
         </el-form-item>
         <el-form-item
-          :label="$t('views.application.applicationForm.form.prompt.label')"
+          :label="$t('views.application.form.prompt.label')"
           prop="prompt"
           :rules="{
             required: true,
-            message: $t('views.application.applicationForm.form.prompt.tooltip'),
-            trigger: 'blur'
+            message: $t('views.application.form.prompt.tooltip'),
+            trigger: 'blur',
           }"
         >
           <template #label>
             <div class="flex align-center">
               <div class="mr-4">
                 <span
-                  >{{ $t('views.application.applicationForm.form.prompt.label')
-                  }}<span class="danger">*</span></span
+                  >{{ $t('views.application.form.prompt.label')
+                  }}<span class="color-danger">*</span></span
                 >
               </div>
               <el-tooltip effect="dark" placement="right" popper-class="max-w-200">
-                <template #content>{{
-                  $t('views.application.applicationForm.form.prompt.tooltip')
-                }}</template>
+                <template #content>{{ $t('views.application.form.prompt.tooltip') }}</template>
                 <AppIcon iconName="app-warning" class="app-warning-icon"></AppIcon>
-                <el-icon><EditPen /></el-icon>
               </el-tooltip>
             </div>
           </template>
           <MdEditorMagnify
             @wheel="wheel"
-            :title="$t('views.application.applicationForm.form.prompt.label')"
+            :title="$t('views.application.form.prompt.label')"
             v-model="form_data.prompt"
             style="height: 150px"
             @submitDialog="submitDialog"
           />
         </el-form-item>
-        <el-form-item :label="$t('views.application.applicationForm.form.historyRecord.label')">
+        <el-form-item :label="$t('views.application.form.historyRecord.label')">
           <el-input-number
             v-model="form_data.dialogue_number"
             :min="0"
@@ -112,10 +109,9 @@
           <template #label>
             <div class="flex align-center">
               <div class="mr-4">
-                <span
-                  >{{ $t('views.applicationWorkflow.nodes.aiChatNode.returnContent.label')
-                  }}<span class="danger">*</span></span
-                >
+                <span>{{
+                  $t('views.applicationWorkflow.nodes.aiChatNode.returnContent.label')
+                }}</span>
               </div>
               <el-tooltip effect="dark" placement="right" popper-class="max-w-200">
                 <template #content>
@@ -135,16 +131,30 @@
 </template>
 <script setup lang="ts">
 import { set, groupBy } from 'lodash'
-import { app } from '@/main'
+
 import NodeContainer from '@/workflow/common/NodeContainer.vue'
 import AIModeParamSettingDialog from '@/views/application/component/AIModeParamSettingDialog.vue'
 import type { FormInstance } from 'element-plus'
-import { ref, computed, onMounted } from 'vue'
-import applicationApi from '@/api/application'
-import useStore from '@/stores'
+import { ref, computed, onMounted, inject } from 'vue'
 import { isLastNode } from '@/workflow/common/data'
 import { t } from '@/locales'
-const { model } = useStore()
+import { useRoute } from 'vue-router'
+import { loadSharedApi } from '@/utils/dynamics-api/shared-api'
+const getApplicationDetail = inject('getApplicationDetail') as any
+const route = useRoute()
+
+const {
+  params: { id },
+} = route as any
+
+const apiType = computed(() => {
+  if (route.path.includes('resource-management')) {
+    return 'systemManage'
+  } else {
+    return 'workspace'
+  }
+})
+
 const AIModeParamSettingDialogRef = ref<InstanceType<typeof AIModeParamSettingDialog>>()
 
 const wheel = (e: any) => {
@@ -171,9 +181,6 @@ function submitDialog(val: string) {
 function submitSystemDialog(val: string) {
   set(props.nodeModel.properties.node_data, 'system', val)
 }
-const {
-  params: { id }
-} = app.config.globalProperties.$route as any
 
 // @ts-ignore
 const defaultPrompt = `${t('views.applicationWorkflow.nodes.questionNode.defaultPrompt1')}{{${t('views.applicationWorkflow.nodes.startNode.label')}.question}}
@@ -184,7 +191,7 @@ const form = {
   system: t('views.applicationWorkflow.nodes.questionNode.systemDefault'),
   prompt: defaultPrompt,
   dialogue_number: 1,
-  is_result: false
+  is_result: false,
 }
 function refreshParam(data: any) {
   set(props.nodeModel.properties.node_data, 'model_params_setting', data)
@@ -206,7 +213,7 @@ const form_data = computed({
   },
   set: (value) => {
     set(props.nodeModel.properties, 'node_data', value)
-  }
+  },
 })
 const props = defineProps<{ nodeModel: any }>()
 
@@ -220,20 +227,26 @@ const validate = () => {
   })
 }
 
-function getModel() {
-  if (id) {
-    applicationApi.getApplicationModel(id).then((res: any) => {
+const application = getApplicationDetail()
+function getSelectModel() {
+  const obj =
+    apiType.value === 'systemManage'
+      ? {
+          model_type: 'LLM',
+          workspace_id: application.value?.workspace_id,
+        }
+      : {
+          model_type: 'LLM',
+        }
+  loadSharedApi({ type: 'model', systemType: apiType.value })
+    .getSelectModelList(obj)
+    .then((res: any) => {
       modelOptions.value = groupBy(res?.data, 'provider')
     })
-  } else {
-    model.asyncGetModel().then((res: any) => {
-      modelOptions.value = groupBy(res?.data, 'provider')
-    })
-  }
 }
 
 onMounted(() => {
-  getModel()
+  getSelectModel()
   if (typeof props.nodeModel.properties.node_data?.is_result === 'undefined') {
     if (isLastNode(props.nodeModel)) {
       set(props.nodeModel.properties.node_data, 'is_result', true)

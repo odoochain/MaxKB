@@ -13,7 +13,7 @@
         v-for="(item, index) in platforms"
         :key="index"
       >
-        <el-card shadow="hover" class="border-none cursor" style="--el-card-padding: 24px">
+        <el-card shadow="hover" class="border-none cursor">
           <div class="flex-between">
             <div class="flex align-center ml-8 mr-8">
               <img :src="item.logoSrc" alt="" class="icon" />
@@ -28,11 +28,15 @@
                 v-model="item.isActive"
                 @change="changeStatus(item.key, item.isActive)"
                 :disabled="!item.exists"
+                v-if="permissionPrecise.access_edit(id)"
               />
               <el-divider direction="vertical" />
-              <el-button class="mr-4" @click="openDrawer(item.key)">{{
-                $t('views.application.applicationAccess.setting')
-              }}</el-button>
+              <el-button
+                class="mr-4"
+                @click="openDrawer(item.key)"
+                v-if="permissionPrecise.access_edit(id)"
+                >{{ $t('views.application.applicationAccess.setting') }}</el-button
+              >
             </div>
           </div>
         </el-card>
@@ -43,62 +47,82 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted, computed } from 'vue'
 import AccessSettingDrawer from './component/AccessSettingDrawer.vue'
-import applicationApi from '@/api/application'
 import { MsgSuccess } from '@/utils/message'
 import { useRoute } from 'vue-router'
 import { t } from '@/locales'
+import permissionMap from '@/permission'
+import { loadSharedApi } from '@/utils/dynamics-api/shared-api'
+const route = useRoute()
+
+const apiType = computed(() => {
+  if (route.path.includes('resource-management')) {
+    return 'systemManage'
+  } else {
+    return 'workspace'
+  }
+})
+const permissionPrecise = computed(() => {
+  return permissionMap['application'][apiType.value]
+})
 
 // 平台数据
 const platforms = reactive([
   {
+    key: 'wecomBot',
+    logoSrc: new URL(`../../assets/logo/logo_wechat-bot.svg`, import.meta.url).href,
+    name: t('views.application.applicationAccess.wecomBot'),
+    description: t('views.application.applicationAccess.wecomBotTip'),
+    isActive: false,
+    exists: false,
+  },
+  {
     key: 'wecom',
-    logoSrc: new URL(`../../assets/logo_wechat-work.svg`, import.meta.url).href,
+    logoSrc: new URL(`../../assets/logo/logo_wechat-work.svg`, import.meta.url).href,
     name: t('views.application.applicationAccess.wecom'),
     description: t('views.application.applicationAccess.wecomTip'),
     isActive: false,
-    exists: false
+    exists: false,
   },
   {
     key: 'dingtalk',
-    logoSrc: new URL(`../../assets/logo_dingtalk.svg`, import.meta.url).href,
+    logoSrc: new URL(`../../assets/logo/logo_dingtalk.svg`, import.meta.url).href,
     name: t('views.application.applicationAccess.dingtalk'),
     description: t('views.application.applicationAccess.dingtalkTip'),
     isActive: false,
-    exists: false
+    exists: false,
   },
   {
     key: 'wechat',
-    logoSrc: new URL(`../../assets/logo_wechat.svg`, import.meta.url).href,
+    logoSrc: new URL(`../../assets/logo/logo_wechat.svg`, import.meta.url).href,
     name: t('views.application.applicationAccess.wechat'),
     description: t('views.application.applicationAccess.wechatTip'),
     isActive: false,
-    exists: false
+    exists: false,
   },
   {
-    key: 'feishu',
-    logoSrc: new URL(`../../assets/logo_lark.svg`, import.meta.url).href,
+    key: 'lark',
+    logoSrc: new URL(`../../assets/logo/logo_lark.svg`, import.meta.url).href,
     name: t('views.application.applicationAccess.lark'),
     description: t('views.application.applicationAccess.larkTip'),
     isActive: false,
-    exists: false
+    exists: false,
   },
   {
     key: 'slack',
-    logoSrc: new URL(`../../assets/logo_slack.svg`, import.meta.url).href,
+    logoSrc: new URL(`../../assets/logo/logo_slack.svg`, import.meta.url).href,
     name: t('views.application.applicationAccess.slack'),
     description: t('views.application.applicationAccess.slackTip'),
     isActive: false,
-    exists: false
-  }
+    exists: false,
+  },
 ])
 
 const AccessSettingDrawerRef = ref()
 const loading = ref(false)
-const route = useRoute()
 const {
-  params: { id }
+  params: { id },
 } = route as any
 
 function openDrawer(key: string) {
@@ -111,23 +135,27 @@ function refresh() {
 
 function getPlatformStatus() {
   loading.value = true
-  applicationApi.getPlatformStatus(id).then((res: any) => {
-    platforms.forEach((platform) => {
-      platform.isActive = res.data[platform.key][1]
-      platform.exists = res.data[platform.key][0]
+  loadSharedApi({ type: 'application', systemType: apiType.value })
+    .getPlatformStatus(id)
+    .then((res: any) => {
+      platforms.forEach((platform) => {
+        platform.isActive = res.data[platform.key][1]
+        platform.exists = res.data[platform.key][0]
+      })
+      loading.value = false
     })
-    loading.value = false
-  })
 }
 
 function changeStatus(type: string, value: boolean) {
   const data = {
     type: type,
-    status: value
+    status: value,
   }
-  applicationApi.updatePlatformStatus(id, data).then(() => {
-    MsgSuccess(t('common.saveSuccess'))
-  })
+  loadSharedApi({ type: 'application', systemType: apiType.value })
+    .updatePlatformStatus(id, data)
+    .then(() => {
+      MsgSuccess(t('common.saveSuccess'))
+    })
 }
 
 onMounted(() => {
@@ -135,51 +163,4 @@ onMounted(() => {
 })
 </script>
 
-<style lang="scss" scoped>
-.p-16-24 {
-  padding: 16px 24px;
-}
-
-.mb-16 {
-  margin-bottom: 16px;
-}
-
-.flex-between {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.flex {
-  display: flex;
-}
-
-.align-center {
-  align-items: center;
-}
-
-.ml-8 {
-  margin-left: 8px;
-}
-
-.mr-8 {
-  margin-right: 8px;
-}
-
-.ml-12 {
-  margin-left: 12px;
-}
-
-.mr-4 {
-  margin-right: 4px;
-}
-
-.cursor {
-  cursor: pointer;
-}
-
-.icon {
-  width: 32px; // 设置图标宽度
-  height: 32px; // 设置图标高度
-}
-</style>
+<style lang="scss" scoped></style>

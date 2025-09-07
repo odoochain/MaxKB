@@ -8,57 +8,31 @@
 """
 import hashlib
 
-from django.urls import re_path, path, URLPattern
-from drf_yasg import openapi
-from drf_yasg.views import get_schema_view
-from rest_framework import permissions
+from django.urls import path, URLPattern
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
-from common.auth import AnonymousAuthentication
-from smartdoc.const import CONFIG
-from django.utils.translation import gettext_lazy as _
+from maxkb.const import CONFIG
+
+chat_api_prefix = CONFIG.get_chat_path()[1:] + '/api/'
 
 
-def init_app_doc(application_urlpatterns):
-    schema_view = get_schema_view(
-        openapi.Info(
-            title="Python API",
-            default_version='v1',
-            description=_('Intelligent customer service platform'),
-        ),
-        public=True,
-        permission_classes=[permissions.AllowAny],
-        authentication_classes=[AnonymousAuthentication]
-    )
-    application_urlpatterns += [
-        re_path(r'^doc(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0),
-                name='schema-json'),  # 导出
-        path('doc/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-        path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+def init_app_doc(system_urlpatterns):
+    system_urlpatterns += [
+        path('doc/schema/', SpectacularAPIView.as_view(), name='schema'),  # schema的配置文件的路由，下面两个ui也是根据这个配置文件来生成的
+        path('doc/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),  # swagger-ui的路由
     ]
 
 
-def init_chat_doc(application_urlpatterns, patterns):
-    chat_schema_view = get_schema_view(
-        openapi.Info(
-            title="Python API",
-            default_version='/chat',
-            description=_('Intelligent customer service platform'),
-        ),
-        public=True,
-        permission_classes=[permissions.AllowAny],
-        authentication_classes=[AnonymousAuthentication],
-        patterns=[
-            URLPattern(pattern='api/' + str(url.pattern), callback=url.callback, default_args=url.default_args,
-                       name=url.name)
-            for url in patterns if
-            url.name is not None and ['application/message', 'application/open',
-                                      'application/profile'].__contains__(
-                url.name)]
-    )
-
-    application_urlpatterns += [
-        path('doc/chat/', chat_schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
-        path('redoc/chat/', chat_schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
+def init_chat_doc(system_urlpatterns, chat_urlpatterns):
+    system_urlpatterns += [
+        path('doc_chat/schema/',
+             SpectacularAPIView.as_view(patterns=[
+                 URLPattern(pattern=f'{chat_api_prefix}{str(url.pattern)}', callback=url.callback,
+                            default_args=url.default_args,
+                            name=url.name) for url in chat_urlpatterns if
+                 ['chat', 'open', 'profile'].__contains__(url.name)]),
+             name='chat_schema'),  # schema的配置文件的路由，下面两个ui也是根据这个配置文件来生成的
+        path('doc_chat/', SpectacularSwaggerView.as_view(url_name='chat_schema'), name='swagger-ui'),  # swagger-ui的路由
     ]
 
 
@@ -87,7 +61,7 @@ init_list = [(init_app_doc, {'valid': lambda: CONFIG.get('DOC_PASSWORD') is not 
                                   application_urlpatterns, patterns)})]
 
 
-def init_doc(application_urlpatterns, patterns):
+def init_doc(system_urlpatterns, chat_patterns):
     for init, params in init_list:
         if params['valid']():
-            get_call(application_urlpatterns, patterns, params, init)()
+            get_call(system_urlpatterns, chat_patterns, params, init)()

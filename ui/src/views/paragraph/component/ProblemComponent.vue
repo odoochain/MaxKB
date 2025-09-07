@@ -3,8 +3,8 @@
     <span class="flex align-center">
       <span>{{ $t('views.paragraph.relatedProblem.title') }}</span>
       <el-divider direction="vertical" class="mr-4" />
-      <el-button text @click="addProblem">
-        <el-icon><Plus /></el-icon>
+      <el-button text @click="addProblem" v-if="permissionPrecise.problem_relate(id)">
+        <AppIcon iconName="app-add-outlined"></AppIcon>
       </el-button>
     </span>
   </p>
@@ -43,7 +43,7 @@
             class="question-tag"
             type="info"
             effect="plain"
-            closable
+            v-bind="permissionPrecise.problem_relate(id) ? { closable: true } : {}"
           >
             <auto-tooltip :content="item.content">
               {{ item.content }}
@@ -55,23 +55,27 @@
   </div>
 </template>
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue'
+import { ref, nextTick, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import paragraphApi from '@/api/paragraph'
-import useStore from '@/stores'
+import { loadSharedApi } from '@/utils/dynamics-api/shared-api'
+import permissionMap from '@/permission'
 
-const props = defineProps({
-  problemId: String,
-  docId: String,
-  datasetId: String
-})
+const props = defineProps<{
+  paragraphId: string
+  docId: string
+  knowledgeId: string
+  apiType: 'systemShare' | 'workspace' | 'systemManage'
+}>()
 
 const route = useRoute()
 const {
-  params: { id, documentId } // id为datasetId
+  params: { id, documentId }, // id为knowledgeId
 } = route as any
 
-const { problem } = useStore()
+const permissionPrecise = computed(() => {
+  return permissionMap['knowledge'][props.apiType]
+})
+
 const inputRef = ref()
 const loading = ref(false)
 const isAddProblem = ref(false)
@@ -83,27 +87,25 @@ const problemOptions = ref<any[]>([])
 const optionLoading = ref(false)
 
 watch(
-  () => props.problemId,
+  () => props.paragraphId,
   (value) => {
     if (value) {
       getProblemList()
     }
   },
   {
-    immediate: true
-  }
+    immediate: true,
+  },
 )
 
 function delProblemHandle(item: any, index: number) {
   if (item.id) {
-    problem
-      .asyncDisassociationProblem(
-        props.datasetId || id,
-        documentId || props.docId,
-        props.problemId || '',
-        item.id,
-        loading
-      )
+    const obj = {
+      paragraph_id: props.paragraphId || '',
+      problem_id: item.id,
+    }
+    loadSharedApi({ type: 'paragraph', systemType: props.apiType })
+      .putDisassociationProblem(props.knowledgeId || id, documentId || props.docId, obj, loading)
       .then((res: any) => {
         getProblemList()
       })
@@ -114,9 +116,13 @@ function delProblemHandle(item: any, index: number) {
 
 function getProblemList() {
   loading.value = true
-  paragraphApi
-    .getProblem(props.datasetId || id, documentId || props.docId, props.problemId || '')
-    .then((res) => {
+  loadSharedApi({ type: 'paragraph', systemType: props.apiType })
+    .getParagraphProblem(
+      props.knowledgeId || id,
+      documentId || props.docId,
+      props.paragraphId || '',
+    )
+    .then((res: any) => {
       problemList.value = res.data
       loading.value = false
     })
@@ -132,23 +138,26 @@ function addProblem() {
   })
 }
 function addProblemHandle(val: string) {
-  if (props.problemId) {
+  if (props.paragraphId) {
+    const obj = {
+      paragraph_id: props.paragraphId,
+      problem_id: val,
+    }
     const api = problemOptions.value.some((option) => option.id === val)
-      ? problem.asyncAssociationProblem(
-          props.datasetId || id,
+      ? loadSharedApi({ type: 'paragraph', systemType: props.apiType }).putAssociationProblem(
+          props.knowledgeId || id,
           documentId || props.docId,
-          props.problemId,
-          val,
-          loading
+          obj,
+          loading,
         )
-      : paragraphApi.postProblem(
-          props.datasetId || id,
+      : loadSharedApi({ type: 'paragraph', systemType: props.apiType }).postParagraphProblem(
+          props.knowledgeId || id,
           documentId || props.docId,
-          props.problemId,
+          props.paragraphId,
           {
-            content: val
+            content: val,
           },
-          loading
+          loading,
         )
     api.then(() => {
       getProblemList()
@@ -172,12 +181,12 @@ const remoteMethod = (query: string) => {
 }
 
 function getProblemOption(filterText?: string) {
-  return problem
-    .asyncGetProblem(
-      props.datasetId || (id as string),
+  return loadSharedApi({ type: 'problem', systemType: props.apiType })
+    .getProblemsPage(
+      props.knowledgeId || (id as string),
       { current_page: 1, page_size: 100 },
       filterText && { content: filterText },
-      optionLoading
+      optionLoading,
     )
     .then((res: any) => {
       problemOptions.value = res.data.records
@@ -194,11 +203,7 @@ onUnmounted(() => {
 })
 
 defineExpose({
-  problemList
+  problemList,
 })
 </script>
-<style scoped lang="scss">
-.question-tag {
-  // width: 217px;
-}
-</style>
+<style scoped lang="scss"></style>

@@ -11,7 +11,7 @@
               <ReadWrite
                 @change="editName"
                 :data="currentContent"
-                :showEditIcon="true"
+                :showEditIcon="permissionPrecise.problem_edit(id as string)"
                 :maxlength="256"
               />
             </el-form-item>
@@ -19,28 +19,31 @@
               <template v-for="(item, index) in paragraphList" :key="index">
                 <CardBox
                   :title="item.title || '-'"
-                  class="paragraph-source-card cursor mb-8"
+                  class="cursor mb-8"
                   :showIcon="false"
-                  @click.stop="editParagraph(item)"
+                  @click.stop="permissionPrecise.doc_edit(id as string) && editParagraph(item)"
+                  style="height: 210px"
                 >
-                  <div class="active-button">
-                    <span class="mr-4">
-                      <el-tooltip
-                        effect="dark"
-                        :content="$t('views.problem.setting.cancelRelated')"
-                        placement="top"
+                  <template #tag>
+                    <el-tooltip
+                      effect="dark"
+                      :content="$t('views.problem.setting.cancelRelated')"
+                      placement="top"
+                    >
+                      <el-button
+                        type="primary"
+                        text
+                        @click.stop="disassociation(item)"
+                        v-if="permissionPrecise.problem_relate(id as string)"
                       >
-                        <el-button type="primary" text @click.stop="disassociation(item)">
-                          <AppIcon iconName="app-quxiaoguanlian"></AppIcon>
-                        </el-button>
-                      </el-tooltip>
-                    </span>
-                  </div>
-                  <template #description>
-                    <el-scrollbar height="80">
-                      {{ item.content }}
-                    </el-scrollbar>
+                        <AppIcon iconName="app-quxiaoguanlian"></AppIcon>
+                      </el-button>
+                    </el-tooltip>
                   </template>
+                  <el-scrollbar height="110">
+                    {{ item.content }}
+                  </el-scrollbar>
+
                   <template #footer>
                     <div class="footer-content flex-between">
                       <el-text>
@@ -60,20 +63,21 @@
       <ParagraphDialog
         ref="ParagraphDialogRef"
         :title="$t('views.paragraph.editParagraph')"
+        :apiType="apiType"
         @refresh="refresh"
       />
       <RelateProblemDialog ref="RelateProblemDialogRef" @refresh="refresh" />
     </div>
     <template #footer>
       <div>
-        <el-button @click="relateProblem">{{
+        <el-button @click="relateProblem" v-if="permissionPrecise.doc_edit(id as string)">{{
           $t('views.problem.relateParagraph.title')
         }}</el-button>
         <el-button @click="pre" :disabled="pre_disable || loading">{{
-          $t('views.log.buttons.prev')
+          $t('views.chatLog.buttons.prev')
         }}</el-button>
         <el-button @click="next" :disabled="next_disable || loading">{{
-          $t('views.log.buttons.next')
+          $t('views.chatLog.buttons.next')
         }}</el-button>
       </div>
     </template>
@@ -83,11 +87,11 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import problemApi from '@/api/problem'
 import ParagraphDialog from '@/views/paragraph/component/ParagraphDialog.vue'
 import RelateProblemDialog from './RelateProblemDialog.vue'
 import { MsgSuccess, MsgConfirm, MsgError } from '@/utils/message'
-import useStore from '@/stores'
+import { loadSharedApi } from '@/utils/dynamics-api/shared-api'
+import permissionMap from '@/permission'
 import { t } from '@/locales'
 const props = withDefaults(
   defineProps<{
@@ -109,17 +113,30 @@ const props = withDefaults(
 
     next_disable: boolean
   }>(),
-  {}
+  {},
 )
 
 const emit = defineEmits(['update:currentId', 'update:currentContent', 'refresh'])
 
 const route = useRoute()
 const {
-  params: { id }
+  params: { id },
 } = route
 
-const { problem } = useStore()
+const apiType = computed(() => {
+  if (route.path.includes('shared')) {
+    return 'systemShare'
+  } else if (route.path.includes('resource-management')) {
+    return 'systemManage'
+  } else {
+    return 'workspace'
+  }
+})
+
+const permissionPrecise = computed(() => {
+  return permissionMap['knowledge'][apiType.value]
+})
+
 const RelateProblemDialogRef = ref()
 const ParagraphDialogRef = ref()
 const loading = ref(false)
@@ -127,14 +144,12 @@ const visible = ref(false)
 const paragraphList = ref<any[]>([])
 
 function disassociation(item: any) {
-  problem
-    .asyncDisassociationProblem(
-      item.dataset_id,
-      item.document_id,
-      item.id,
-      props.currentId,
-      loading
-    )
+  const obj = {
+    paragraph_id: item.id,
+    problem_id: props.currentId,
+  }
+  loadSharedApi({ type: 'paragraph', systemType: apiType.value })
+    .putDisassociationProblem(item.knowledge_id, item.document_id, obj, loading)
     .then(() => {
       getRecord()
     })
@@ -145,18 +160,20 @@ function relateProblem() {
 }
 
 function editParagraph(row: any) {
-  ParagraphDialogRef.value.open(row)
+  ParagraphDialogRef.value.open(row, 'edit')
 }
 
 function editName(val: string) {
   if (val) {
     const obj = {
-      content: val
+      content: val,
     }
-    problemApi.putProblems(id as string, props.currentId, obj, loading).then(() => {
-      emit('update:currentContent', val)
-      MsgSuccess(t('common.modifySuccess'))
-    })
+    loadSharedApi({ type: 'problem', systemType: apiType.value })
+      .putProblems(id as string, props.currentId, obj, loading)
+      .then(() => {
+        emit('update:currentContent', val)
+        MsgSuccess(t('common.modifySuccess'))
+      })
   } else {
     MsgError(t('views.problem.tip.errorMessage'))
   }
@@ -168,9 +185,11 @@ function closeHandle() {
 
 function getRecord() {
   if (props.currentId && visible.value) {
-    problemApi.getDetailProblems(id as string, props.currentId, loading).then((res) => {
-      paragraphList.value = res.data
-    })
+    loadSharedApi({ type: 'problem', systemType: apiType.value })
+      .getDetailProblems(id as string, props.currentId, loading)
+      .then((res: any) => {
+        paragraphList.value = res.data
+      })
   }
 }
 
@@ -183,7 +202,7 @@ watch(
   () => {
     paragraphList.value = []
     getRecord()
-  }
+  },
 )
 
 watch(visible, (bool) => {
@@ -200,7 +219,7 @@ const open = () => {
 }
 
 defineExpose({
-  open
+  open,
 })
 </script>
 <style lang="scss"></style>

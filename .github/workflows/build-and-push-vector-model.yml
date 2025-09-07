@@ -5,7 +5,7 @@ on:
     inputs:
       dockerImageTag:
         description: 'Docker Image Tag'
-        default: 'v1.0.1'
+        default: 'v2.0.2'
         required: true
       architecture:
         description: 'Architecture'
@@ -19,26 +19,12 @@ on:
 
 jobs:
   build-and-push-vector-model-to-ghcr:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
-      - name: Check Disk Space
-        run: df -h
-      - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: true
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-      - name: Check Disk Space
-        run: df -h
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: main
+          ref: ${{ github.ref_name }}
       - name: Prepare
         id: prepare
         run: |
@@ -56,8 +42,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
-          # Until https://github.com/tonistiigi/binfmt/issues/215
-          image: tonistiigi/binfmt:qemu-v7.0.0-28
+          cache-image: false
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
       - name: Login to GitHub Container Registry

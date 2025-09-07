@@ -9,71 +9,64 @@
     :close-on-click-modal="false"
     :close-on-press-escape="false"
   >
-    <div>
-      <el-scrollbar always>
-        <div class="p-16">
-          <el-form label-position="top" ref="paramFormRef" :model="form">
-            <el-row :gutter="20">
-              <el-col :span="12">
-                <el-form-item>
-                  <template #label>
-                    <div class="flex align-center">
-                      <span class="mr-4"
-                        >Score {{ $t('views.applicationWorkflow.nodes.rerankerNode.higher') }}</span
-                      >
-                      <el-tooltip
-                        effect="dark"
-                        :content="$t('views.applicationWorkflow.nodes.rerankerNode.ScoreTooltip')"
-                        placement="right"
-                      >
-                        <AppIcon iconName="app-warning" class="app-warning-icon"></AppIcon>
-                      </el-tooltip>
-                    </div>
-                  </template>
-                  <el-input-number
-                    v-model="form.similarity"
-                    :min="0"
-                    :max="form.search_mode === 'blend' ? 2 : 1"
-                    :precision="3"
-                    :step="0.1"
-                    :value-on-clear="0"
-                    controls-position="right"
-                    class="w-full"
-                  />
-                </el-form-item>
-              </el-col>
-              <el-col :span="12">
-                <el-form-item
-                  :label="$t('views.application.applicationForm.dialog.topReferences')"
+    <el-form label-position="top" ref="paramFormRef" :model="form">
+      <el-row :gutter="12">
+        <el-col :span="12">
+          <el-form-item>
+            <template #label>
+              <div class="flex align-center">
+                <span class="mr-4"
+                  >Score {{ $t('views.applicationWorkflow.nodes.rerankerNode.higher') }}</span
                 >
-                  <el-input-number
-                    v-model="form.top_n"
-                    :min="1"
-                    :max="10000"
-                    :value-on-clear="1"
-                    controls-position="right"
-                    class="w-full"
-                  />
-                </el-form-item>
-              </el-col>
-            </el-row>
+                <el-tooltip
+                  effect="dark"
+                  :content="$t('views.applicationWorkflow.nodes.rerankerNode.ScoreTooltip')"
+                  placement="right"
+                >
+                  <AppIcon iconName="app-warning" class="app-warning-icon"></AppIcon>
+                </el-tooltip>
+              </div>
+            </template>
+            <el-input-number
+              v-model="form.similarity"
+              :min="0"
+              :max="form.search_mode === 'blend' ? 2 : 1"
+              :precision="3"
+              :step="0.1"
+              :value-on-clear="0"
+              controls-position="right"
+              class="w-full"
+            />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item :label="$t('views.application.dialog.topReferences')">
+            <el-input-number
+              v-model="form.top_n"
+              :min="1"
+              :max="10000"
+              :value-on-clear="1"
+              controls-position="right"
+              class="w-full"
+            />
+          </el-form-item>
+        </el-col>
+      </el-row>
 
-            <el-form-item :label="$t('views.application.applicationForm.dialog.maxCharacters')">
-              <el-slider
-                v-model="form.max_paragraph_char_number"
-                show-input
-                :show-input-controls="false"
-                :min="500"
-                :max="100000"
-                class="custom-slider"
-              />
-            </el-form-item>
-          </el-form>
-        </div>
-      </el-scrollbar>
-    </div>
+      <el-form-item :label="$t('views.application.dialog.maxCharacters')">
+        <el-slider
+          v-model="form.max_paragraph_char_number"
+          show-input
+          :show-input-controls="false"
+          :min="500"
+          :max="100000"
+          class="custom-slider"
+        />
+      </el-form-item>
+    </el-form>
+
     <template #footer>
-      <span class="dialog-footer p-16">
+      <span class="dialog-footer">
         <el-button @click.prevent="dialogVisible = false">{{ $t('common.cancel') }}</el-button>
         <el-button type="primary" @click="submit()" :loading="loading">
           {{ $t('common.save') }}
@@ -93,7 +86,7 @@ const paramFormRef = ref<FormInstance>()
 const form = ref<any>({
   top_n: 3,
   similarity: 0,
-  max_paragraph_char_number: 5000
+  max_paragraph_char_number: 5000,
 })
 
 const dialogVisible = ref<boolean>(false)
@@ -104,7 +97,7 @@ watch(dialogVisible, (bool) => {
     form.value = {
       top_n: 3,
       similarity: 0,
-      max_paragraph_char_number: 5000
+      max_paragraph_char_number: 5000,
     }
   }
 })
@@ -125,22 +118,4 @@ const submit = () => {
 
 defineExpose({ open })
 </script>
-<style lang="scss" scoped>
-.param-dialog {
-  padding: 8px 8px 24px 8px;
-  .el-dialog__header {
-    padding: 16px 16px 0 16px;
-  }
-  .el-dialog__body {
-    padding: 0 !important;
-  }
-  .dialog-max-height {
-    height: 550px;
-  }
-  .custom-slider {
-    .el-input-number.is-without-controls .el-input__wrapper {
-      padding: 0 !important;
-    }
-  }
-}
-</style>
+<style lang="scss"></style>

@@ -16,8 +16,6 @@
     }
 
     .content {
-      padding-left: var(--padding-left);
-      padding-right: var(--padding-left);
 
       :deep(ol) {
         margin-left: 16px !important;
@@ -39,7 +37,7 @@
 
 @media only screen and (max-width: 768px) {
   .ai-chat {
-    height: calc(100% - 100px);
+    height: calc(100% - 106px) !important;
   }
 }
 .chat-mobile {
